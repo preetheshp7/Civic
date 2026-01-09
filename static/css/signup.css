@@ -1,0 +1,244 @@
+/* =====================
+   THEME VARIABLES
+===================== */
+:root{
+    --primary:#2563eb;
+    --primary-dark:#1d4ed8;
+    --gray:#64748b;
+    --gray-light:#e2e8f0;
+    --dark:#1e293b;
+}
+
+/* =====================
+   GLOBAL RESET
+===================== */
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+    font-family:'Segoe UI',Tahoma,Arial,sans-serif;
+}
+
+/* Body should NOT control layout */
+body{
+    background:#f1f5f9;
+    color:var(--dark);
+    min-height:100vh;
+    padding:1rem;
+}
+
+/* =====================
+   PAGE LAYOUT (MAIN CONTROLLER)
+===================== */
+.page-container{
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;   /* critical for top → bottom layout */
+    align-items:center;
+    justify-content:center;
+}
+
+/* =====================
+   ROLE SELECTOR (TOP)
+===================== */
+.role-selector{
+    width:100%;
+    max-width:920px;
+    display:flex;
+    gap:20px;
+    justify-content:center;
+    margin-bottom:25px;
+}
+
+.role-tab{
+    flex:1;
+    padding:15px;
+    border-radius:12px;
+    background:#f3f3f3;
+    cursor:pointer;
+    text-align:center;
+    font-weight:600;
+    transition:all .2s ease;
+}
+
+.role-tab i{
+    display:block;
+    font-size:20px;
+    margin-bottom:6px;
+}
+
+.role-tab.active{
+    background:var(--primary);
+    color:white;
+}
+
+.role-tab:hover{
+    transform:translateY(-2px);
+}
+
+/* =====================
+   SIGNUP CARD
+===================== */
+.card{
+    background:white;
+    border-radius:12px;
+    box-shadow:0 10px 25px rgba(0,0,0,.08);
+    max-width:920px;
+    width:100%;
+    display:flex;
+    overflow:hidden;
+}
+
+.left{
+    flex:1;
+    background:linear-gradient(135deg,var(--primary),#3b82f6);
+    color:white;
+    padding:2.5rem;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+}
+
+.right{
+    flex:1;
+    padding:2.5rem;
+}
+
+.logo{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    font-weight:700;
+    font-size:1.5rem;
+    margin-bottom:1rem;
+}
+
+.logo i{
+    font-size:1.6rem;
+}
+
+h1{
+    font-size:1.6rem;
+    margin-bottom:.5rem;
+}
+
+p.sub{
+    opacity:.9;
+    margin-bottom:1.2rem;
+}
+
+/* =====================
+   FORM STYLES
+===================== */
+form{
+    width:100%;
+}
+
+.form-group{
+    margin-bottom:1rem;
+}
+
+label{
+    display:block;
+    margin-bottom:.4rem;
+    font-weight:600;
+}
+
+input.form-control,
+select.form-control{
+    width:100%;
+    padding:.9rem;
+    border:1px solid var(--gray-light);
+    border-radius:8px;
+}
+
+input.form-control:focus,
+select.form-control:focus{
+    outline:none;
+    border-color:var(--primary);
+    box-shadow:0 0 0 3px rgba(37,99,235,.08);
+}
+
+.error{
+    color:#ef4444;
+    font-size:.9rem;
+    margin-top:.4rem;
+    display:none;
+}
+
+/* =====================
+   ACTION BUTTONS
+===================== */
+.actions{
+    display:flex;
+    gap:.75rem;
+    align-items:center;
+    margin-top:1rem;
+}
+
+.btn{
+    padding:.7rem 1rem;
+    border-radius:8px;
+    border:none;
+    background:var(--primary);
+    color:white;
+    font-weight:700;
+    cursor:pointer;
+}
+
+.btn.secondary{
+    background:#eee;
+    color:#333;
+}
+
+/* =====================
+   UTILITIES
+===================== */
+.hidden{
+    display:none !important;
+}
+
+/* =====================
+   RESPONSIVE
+===================== */
+@media(max-width:800px){
+    .card{
+        flex-direction:column;
+    }
+
+    .left,
+    .right{
+        padding:1.5rem;
+    }
+
+    .role-selector{
+        flex-direction:column;
+    }
+}
+
+/* ================= TOP HOME BUTTON ================= */
+.top-home {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 18px;
+}
+
+.home-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    color: #2563eb;
+    border: 1.5px solid #2563eb;
+    background: #fff;
+    transition: all 0.2s ease;
+}
+
+.home-btn:hover {
+    background-color: #2563eb;
+    color: #fff;
+}

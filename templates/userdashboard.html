@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>User Dashboard - CivicConnect</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Your CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/userdashboard.css') }}">
+
+    <!--  API  -->
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAPS_KEY }}" async defer></script>
+</head>
+<body>
+
+<!-- Permission / Status Message -->
+<div id="site-message" class="site-message"></div>
+<div id="location-modal" class="location-modal">
+    <div class="location-modal-content">
+        <h3>Enable Location Access</h3>
+        <p>
+            CivicConnect needs your location to:
+            <br>• Tag the issue accurately
+            <br>• Assign it to the correct department
+        </p>
+
+        <div class="modal-actions">
+            <button class="btn btn-primary" id="enableLocationBtn" onclick="requestLocationPermission()">
+            Enable Location
+            </button>
+
+        </div>
+    </div>
+</div>
+
+<!-- ================= HEADER ================= -->
+<header>
+    <div class="container">
+        <nav class="navbar">
+            <div class="logo">
+                <i class="fas fa-city"></i>
+                <span>CivicConnect</span>
+            </div>
+
+            <div class="nav-links">
+                <a href="/home-page">Home</a>
+                <a href="/nearbyissue">Nearby Issues</a>
+                <a href="/user-dashboard">Report Issue</a>
+                <a href="/help">Help</a>
+            </div>
+
+            <div class="user-actions">
+                {% if session.get("user_role") %}
+                    <span style="font-weight:600; color:#2563eb;">
+                        👤 Logged in as {{ session.get("user_name", session.get("user_role")) }}
+                    </span>
+
+                    <a href="/logout" class="btn btn-outline" style="margin-left:10px;">
+                        Logout
+                    </a>
+                {% else %}
+                    <a href="/login-page" class="btn btn-outline">Login</a>
+                    <a href="/signup-page" class="btn btn-primary">Sign Up</a>
+                {% endif %}
+            </div>
+
+        </nav>
+    </div>
+</header>
+
+<!-- ================= DASHBOARD ================= -->
+<section id="dashboard-page">
+
+    <section class="dashboard-header">
+        <div class="container">
+            <div class="dashboard-title">
+                <h1>My Complaints</h1>
+                <button class="btn btn-primary" onclick="showReportPage()">
+                    <i class="fas fa-plus"></i> Report New Issue
+                </button>
+            </div>
+
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-number" id="stat-total">0</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-card pending">
+                    <div class="stat-number" id="stat-pending">0</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="stat-card in-progress">
+                    <div class="stat-number" id="stat-inprogress">0</div>
+                    <div class="stat-label">In Progress</div>
+                </div>
+                <div class="stat-card resolved">
+                    <div class="stat-number" id="stat-resolved">0</div>
+                    <div class="stat-label">Resolved</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="complaints-section">
+        <div class="container">
+        <div class="section-header">
+            <h2>Recent Complaints</h2>
+
+            <div class="filter-wrapper">
+                <i class="fas fa-filter"></i>
+                <select id="sortSelect">
+                    <option value="newest">Newest</option>
+                    <option value="oldest">Oldest</option>
+                    <option value="status">Status</option>
+                </select>
+            </div>
+        </div>
+            <div class="complaints-list"></div>
+        </div>
+    </section>
+
+</section>
+
+    <!-- Report Issue Page -->
+    <section id="report-page" class="page-container">
+        <div class="container">
+            <div class="page-header">
+                <button class="back-btn" aria-label="Back to Home" onclick="showOnly(dashboardPage)">
+                    <i class="fas fa-chevron-left"></i>
+                    Back
+                </button>
+                <i class="fas fa-flag"></i>
+                <h2>Report an Issue</h2>
+            </div>
+            
+            <form id="issue-form">
+                <div class="form-group">
+                    <label for="photo-upload">Upload Photos (Max: 2)</label>
+                    <div class="upload-area" id="photo-upload" onclick="document.getElementById('real-photo').click()">
+                    <input type="file" id="real-photo" accept="image/*" multiple style="display:none" onchange="previewPhotos(event)">
+
+                        <div class="upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <p>Drag & drop photos here or click to browse</p>
+                        <p class="small-text">Supported formats: JPG, PNG (Max 5MB per photo, up to 2 photos)</p>
+                        <div id="photo-previews" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 1rem;"></div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="issue-description">
+                        Issue Description <span style="color: var(--gray); font-size: 0.9rem;">(Optional)</span>
+                    </label>
+                    <textarea id="issue-description" class="form-control" rows="4"
+                            placeholder="Describe the issue (optional)..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="issue-location">
+                        Select Location on Map <span style="color: red;">*</span>
+                    </label>
+
+                    <div id="map-container" style="width: 100%; height: 300px; border: 2px solid var(--gray-light); border-radius: 6px; margin-bottom: 1rem; background: var(--gray-light); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px;">
+                        <i class="fas fa-map" style="font-size: 2rem; color: var(--gray);"></i>
+                        <p style="color: var(--gray); margin: 0;">Loading map...</p>
+                        <div id="map" style="width: 100%; height: 100%; border-radius: 6px;"></div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
+                        <input type="text"id="issue-location" class="form-control" readonly placeholder="Location will be detected automatically">
+                        <input type="hidden" id="location-lat">
+                        <input type="hidden" id="location-lng">
+                        <button type="button" class="submit-btn"
+                                style="width: auto; padding: 0.8rem 1.5rem;"
+                                onclick="openLocationModal()">
+                            📍 Use Current Location
+                        </button>
+
+
+                    </div>
+                </div>
+                <button type="button" class="submit-btn" id="submitIssueBtn" onclick="submitIssue()">Submit Issue</button>
+            </form>
+        </div>
+    </section>
+
+<!-- Confirmation Page -->
+<section id="confirmation-page" class="page-container">
+        <div class="container">
+            <div class="confirmation-container">
+                <div class="confirmation-header">
+                    <div class="success-icon">✔</div>
+                    <h1>Issue Reported Successfully!</h1>
+                    <p class="subheader">Your complaint has been logged and routed to the appropriate department.</p>
+                </div>
+
+                <div class="details-card">
+                    <h2>Complaint Details</h2>
+
+                    <div class="detail-row">
+                        <span class="label">Detected Issue:</span>
+                        <span class="value"><strong id="detected-issue">Garbage Overflow</strong></span>
+                    </div>
+
+                    <div class="assigned-department">
+                        <div class="detail-row">
+                            <span class="label">Assigned To:</span>
+                            <div class="department-info">
+                                <div class="dept-icon" id="dept-icon">🗑️</div>
+                                <div class="dept-details">
+                                    <strong class="dept-name" id="dept-name">Sanitation & Waste Management Department</strong>
+                                    <p class="dept-contact" id="dept-contact">A work order has been assigned to a field inspector.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="label">Location:</span>
+                        <span class="value" id="confirmed-location">123 Main Street (Detected via GPS)</span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="label">Complaint ID:</span>
+                        <span class="value complaint-id" id="complaint-id">#CN-2023-58776</span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="label">Submitted:</span>
+                        <span class="value" id="submitted-time">—</span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="label">Last Updated:</span>
+                        <span class="value" id="last-updated">—</span>
+                    </div>
+
+                <div class="next-steps">
+                    <h3>What Happens Next?</h3>
+                    <ul>
+                        <li>The assigned department will review the complaint within 24 hours.</li>
+                        <li>You will receive status updates via User Dashborad.</li>
+                        <li>Use your Complaint ID to track the progress at any time.</li>
+                        <li>Expected resolution time: 10-15 business days for this issue type.</li>
+                    </ul>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="showReportPage()">Report Another Issue</button>
+                    <button class="btn btn-primary" onclick="window.location.href='/user-dashboard'">Track Issue</button>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+<!-- Complaint Details Page -->
+<section id="complaint-details-page" class="page-container" style="display:none">
+  <div class="container">
+    <div class="page-header">
+      <button class="back-btn" onclick="showOnly(dashboardPage)">
+        <i class="fas fa-chevron-left"></i> Back
+      </button>
+      <h2>Complaint Details</h2>
+    </div>
+
+    <div class="details-card">
+      <p><strong>Complaint ID:</strong> <span id="cd-id"></span></p>
+      <p><strong>Issue:</strong> <span id="cd-issue"></span></p>
+      <p><strong>Status:</strong> <span id="cd-status"></span></p>
+      <div class="progress-wrapper">
+            <div class="progress-steps">
+               <div class="step" id="step-pending">Pending</div>
+              <div class="step" id="step-progress">In Progress</div>
+             <div class="step" id="step-resolved">Resolved</div>
+         </div>
+         <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+         </div>
+      </div>
+      <p><strong>Submitted:</strong> <span id="cd-date"></span></p>
+      <p><strong>Location:</strong> <span id="cd-location"></span></p>
+      
+
+      <div id="cd-images" style="margin-top:1rem; display:flex; gap:10px"></div>
+      <button class="btn btn-danger" id="withdrawBtn" style="display:none">Withdraw Complaint</button>
+    </div>
+  </div>
+</section>
+
+
+<!-- Image Preview Modal -->
+<div id="imageModal" class="image-modal">
+    <span class="close-btn" onclick="closeImageModal()">&times;</span>
+    <img id="modalImage" onclick="event.stopPropagation()">
+</div>
+
+<!-- ================= FOOTER ================= -->
+<footer>
+    <p style="text-align:center;">© 2023 CivicConnect</p>
+</footer>
+
+<!-- ================= JS ================= -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
+
+
+<script>
+
+    
+/* =========================================================
+   GLOBAL STATE
+========================================================= */
+let imageLat = null;
+let imageLng = null;
+let imageTime = null;
+
+let map = null;
+let marker = null;
+let allUserComplaints = [];
+let isSubmitting = false;
+
+/* =========================================================
+   PAGE REFERENCES & SWITCHING
+========================================================= */
+const dashboardPage = document.getElementById("dashboard-page");
+const reportPage = document.getElementById("report-page");
+const confirmationPage = document.getElementById("confirmation-page");
+const complaintDetailsPage = document.getElementById("complaint-details-page");
+
+function showOnly(page) {
+    dashboardPage.style.display = "none";
+    reportPage.style.display = "none";
+    confirmationPage.style.display = "none";
+    complaintDetailsPage.style.display = "none";
+
+    page.style.display = "block";
+}
+
+
+function showReportPage() {
+    dashboardPage.style.display = "none";
+    reportPage.style.display = "block";
+    confirmationPage.style.display = "none";
+
+    // Initialize map only once
+    if (!map) {
+        setTimeout(() => {
+            initMap();
+        }, 300);
+    }
+}
+
+function showConfirmationPage() {
+    dashboardPage.style.display = "none";
+    reportPage.style.display = "none";
+    confirmationPage.style.display = "block";
+}
+
+function initMap() {
+        const center = { lat: 13.3119, lng: 75.2705 }; // Puttur
+
+    map = new google.maps.Map(document.getElementById("map"), {
+        center,
+        zoom: 14,
+        mapTypeControl: false,
+        streetViewControl: false
+    });
+
+    map.addListener("click", (e) => {
+        setMapLocation(e.latLng.lat(), e.latLng.lng());
+    });
+}
+
+/* =========================================================
+   DASHBOARD DATA
+========================================================= */
+async function loadUserCounts() {
+    const res = await fetch("/user/counts", {
+    credentials: "same-origin"});
+    const d = await res.json();
+
+    document.getElementById("stat-total").innerText = d.total;
+    document.getElementById("stat-pending").innerText = d.pending;
+    document.getElementById("stat-inprogress").innerText = d.progress;
+    document.getElementById("stat-resolved").innerText = d.resolved;
+}
+
+async function loadUserComplaints() {
+    const res = await fetch("/user/issues", {
+        credentials: "same-origin"
+    });
+
+    if (!res.ok) {
+        console.error("Failed to load complaints");
+        return;
+    }
+
+    const data = await res.json();
+    console.log("Loaded complaints:", data);
+
+    allUserComplaints = data;
+    renderUserComplaints(allUserComplaints);
+}
+
+
+function renderUserComplaints(list) {
+    const box = document.querySelector(".complaints-list");
+    box.innerHTML = "";
+
+    list.forEach(i => {
+    box.innerHTML += `
+    <div class="complaint-card">
+        <img src="/static/uploads/${i.image1_path}"
+            onclick="openImageModal(this.src)">
+
+        <div class="complaint-content">
+            <span class="status-badge ${i.status.replace(" ", "-").toLowerCase()}">
+                ${i.status}
+            </span>
+
+            <strong>${i.detected_issue.toUpperCase()}</strong>
+            <p>#CN-${i.issue_id}</p>
+        </div>
+
+        <div class="complaint-action">
+            <button class="btn btn-outline"
+                onclick="openComplaintDetails(${i.issue_id})">
+                Track Complaint
+            </button>
+        </div>
+    </div>
+    `;
+    });
+}
+
+async function openComplaintDetails(issueId) {
+    const res = await fetch(`/user/issue/${issueId}`);
+    const data = await res.json();
+
+    if (!res.ok) {
+        showMessage(data.error || "Unable to load complaint", "error");
+        return;
+    }
+
+    // ✅ Fill ONLY complaint-details-page IDs
+    document.getElementById("cd-id").innerText =
+        "#CN-" + data.issue_id;
+
+    document.getElementById("cd-issue").innerText =
+        data.detected_issue.toUpperCase();
+
+    document.getElementById("cd-status").innerText =
+        data.status;
+        
+    // ----- PROGRESS BAR -----
+    const status = data.status.toLowerCase();
+    const fill = document.getElementById("progressFill");
+
+    document.querySelectorAll(".step").forEach(s =>
+        s.classList.remove("active")
+    );
+
+    if (status === "pending") {
+        fill.style.width = "33%";
+        document.getElementById("step-pending").classList.add("active");
+    }
+    else if (status === "in progress") {
+        fill.style.width = "66%";
+        document.getElementById("step-pending").classList.add("active");
+        document.getElementById("step-progress").classList.add("active");
+    }
+    else if (status === "resolved") {
+        fill.style.width = "100%";
+        document.querySelectorAll(".step").forEach(s =>
+            s.classList.add("active")
+        );
+    }
+
+
+    document.getElementById("cd-date").innerText =
+        new Date(data.created_at).toLocaleString();
+
+    document.getElementById("cd-location").innerText =
+        data.location || "—";
+
+    // --- IMAGE RENDERING ---
+    const imgBox = document.getElementById("cd-images");
+    imgBox.innerHTML = "";
+
+    if (data.image && data.image !== "null") {
+        const img = document.createElement("img");
+        img.src = `/static/uploads/${data.image}`;
+        img.style.width = "150px";
+        img.style.borderRadius = "6px";
+        img.style.cursor = "pointer";
+
+        img.onerror = () => {
+            console.error("Image not found:", img.src);
+            imgBox.innerHTML = "<p>No image available</p>";
+        };
+
+        img.onclick = () => openImageModal(img.src);
+        imgBox.appendChild(img);
+    } else {
+        imgBox.innerHTML = "<p>No image uploaded</p>";
+    }
+
+    // --- WITHDRAW BUTTON LOGIC ---
+    const withdrawBtn = document.getElementById("withdrawBtn");
+
+    if (data.status.toLowerCase() === "pending") {
+        withdrawBtn.style.display = "inline-block";
+        withdrawBtn.onclick = () => withdrawComplaint(data.issue_id);
+    } else {
+        withdrawBtn.style.display = "none";
+    }
+
+
+    // ✅ Page switching (CRITICAL)
+    dashboardPage.style.display = "none";
+    reportPage.style.display = "none";
+    confirmationPage.style.display = "none";
+    complaintDetailsPage.style.display = "block";
+}
+
+
+async function withdrawComplaint(issueId) {
+    const ok = confirm("Are you sure you want to withdraw this complaint?");
+    if (!ok) return;
+
+    const res = await fetch(`/user/issue/${issueId}`, {
+        method: "DELETE"
+    });
+
+    const out = await res.json();
+
+    if (!res.ok) {
+        showMessage(out.error || "Unable to withdraw complaint", "error");
+        return;
+    }
+
+    showMessage("Complaint withdrawn successfully", "success");
+
+    // Go back to dashboard
+    showOnly(dashboardPage);
+
+    // Refresh data
+    loadUserCounts();
+    loadUserComplaints();
+}
+
+/* =========================================================
+   SORTING
+========================================================= */
+document.getElementById("sortSelect").addEventListener("change", function () {
+    let sorted = [...allUserComplaints];
+
+    if (this.value === "newest") {
+        sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    } else if (this.value === "oldest") {
+        sorted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    } else {
+        sorted.sort((a, b) => a.status.localeCompare(b.status));
+    }
+
+    renderUserComplaints(sorted);
+});
+
+/* =========================================================
+   MAP CONFIG
+========================================================= */
+const ALLOWED_PINCODES = [
+    '574201','574202','574210','574221',
+    '574223','574241','574285','574203','574200'
+];
+
+const PUTTUR_CENTER = [13.3119, 75.2705];
+
+function setMapLocation(lat, lng) {
+    document.getElementById("location-lat").value = lat;
+    document.getElementById("location-lng").value = lng;
+
+    if (marker) marker.setMap(null);
+
+    marker = new google.maps.Marker({
+        position: { lat, lng },
+        map,
+    });
+
+    map.setZoom(17);
+    map.panTo({ lat, lng });
+
+    // 🚨 DO NOT enable submit here
+    // Let reverseGeocode decide
+    reverseGeocode(lat, lng);
+}
+
+
+
+function reverseGeocode(lat, lng) {
+    const geocoder = new google.maps.Geocoder();
+
+    geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+        if (status !== "OK" || !results[0]) {
+            showMessage("Unable to detect address", "warning");
+            return;
+        }
+
+        const result = results[0];
+        const address = result.formatted_address;
+
+        // Extract pincode
+        const components = result.address_components;
+        const pincodeObj = components.find(c =>
+            c.types.includes("postal_code")
+        );
+        const pincode = pincodeObj ? pincodeObj.long_name : null;
+
+        // ❌ OUTSIDE ALLOWED AREA
+        if (!pincode || !ALLOWED_PINCODES.includes(pincode)) {
+            showMessage(
+                "Selected location is outside the supported municipality area.",
+                "warning"
+            );
+
+            // Remove marker
+            if (marker) {
+                marker.setMap(null);
+                marker = null;
+            }
+
+            // Clear location fields
+            document.getElementById("issue-location").value = "";
+            document.getElementById("location-lat").value = "";
+            document.getElementById("location-lng").value = "";
+
+            // Disable submit
+            document.getElementById("submitIssueBtn").disabled = true;
+
+            return; // 🚫 STOP HERE
+        }
+
+        // ✅ VALID LOCATION
+        document.getElementById("issue-location").value = address;
+        document.getElementById("submitIssueBtn").disabled = false;
+    });
+}
+
+/* =========================================================
+   IMAGE PREVIEW + EXIF
+========================================================= */
+function previewPhotos(event) {
+    const files = event.target.files;
+    const preview = document.getElementById("photo-previews");
+    preview.innerHTML = "";
+
+    if (files.length > 2) {
+        showMessage("Maximum 2 photos allowed", "warning");
+        event.target.value = "";
+        return;
+    }
+
+    const file = files[0];
+
+    EXIF.getData(file, function () {
+        const lat = EXIF.getTag(this, "GPSLatitude");
+        const latRef = EXIF.getTag(this, "GPSLatitudeRef");
+        const lng = EXIF.getTag(this, "GPSLongitude");
+        const lngRef = EXIF.getTag(this, "GPSLongitudeRef");
+        const time = EXIF.getTag(this, "DateTimeOriginal");
+
+        if (lat && lng) {
+            imageLat = convertDMSToDecimal(lat, latRef);
+            imageLng = convertDMSToDecimal(lng, lngRef);
+        } else {
+            imageLat = null;
+            imageLng = null;
+            showMessage("Photo location not found. Please use a live photo.", "warning");
+        }
+
+        imageTime = time ? parseExifDate(time) : null;
+
+        if (imageLat && imageLng && map) {
+            setMapLocation(imageLat, imageLng);
+            showMessage("Location auto-filled from photo GPS", "success");
+        }
+    });
+
+    Array.from(files).forEach(file => {
+        const img = document.createElement("img");
+        const url = URL.createObjectURL(file);
+        img.src = url;
+        img.onload = () => URL.revokeObjectURL(url);
+        img.style.width = "120px";
+        preview.appendChild(img);
+    });
+}
+
+/* =========================================================
+   SUBMIT ISSUE
+========================================================= */
+async function submitIssue() {
+
+    // 🚫 Prevent duplicate submissions
+    if (isSubmitting) return;
+    isSubmitting = true;
+
+    const submitBtn = document.getElementById("submitIssueBtn");
+    submitBtn.disabled = true;
+    submitBtn.innerText = "Submitting...";
+
+    const photos = document.getElementById("real-photo").files;
+    const locationText = document.getElementById("issue-location").value;
+    const lat = document.getElementById("location-lat").value;
+    const lng = document.getElementById("location-lng").value;
+    const description = document.getElementById("issue-description").value;
+
+    if (!photos.length || !locationText || !lat || !lng) {
+        showMessage("Missing required fields.", "error");
+        submitBtn.disabled = false;
+        submitBtn.innerText = "Submit Issue";
+        isSubmitting = false;
+        return;
+    }
+
+    try {
+        // ---------- ML PREDICTION ----------
+        const mlForm = new FormData();
+        mlForm.append("image", photos[0]);
+
+        const mlRes = await fetch("/predict", {
+            method: "POST",
+            body: mlForm
+        });
+
+        const ml = await mlRes.json();
+
+        // ---------- ISSUE SUBMISSION ----------
+        const data = new FormData();
+        Array.from(photos).forEach((p, i) => data.append(`photo_${i + 1}`, p));
+
+        data.append("predicted_issue", ml.prediction);
+        data.append("confidence", ml.confidence);
+        data.append("severity_score", ml.severity_score);
+        data.append("description", description);
+        data.append("location", locationText);
+        data.append("lat", lat);
+        data.append("lng", lng);
+
+        const res = await fetch("/report-issue", {
+            method: "POST",
+            body: data
+        });
+
+        if (!res.ok) throw new Error("Submission failed");
+
+        const out = await res.json();
+
+        // ---------- FILL CONFIRMATION ----------
+        document.getElementById("detected-issue").innerText =
+            ml.prediction.toUpperCase();
+
+        document.getElementById("confirmed-location").innerText =
+            locationText;
+
+        document.getElementById("dept-name").innerText =
+            out.assigned_to.department;
+
+        document.getElementById("dept-icon").innerText =
+            out.assigned_to.department.toLowerCase().includes("garbage") ? "🗑️" :
+            out.assigned_to.department.toLowerCase().includes("road") ? "🛣️" :
+            out.assigned_to.department.toLowerCase().includes("water") ? "🚰" : "🏛️";
+
+        document.getElementById("dept-contact").innerText =
+            "Assigned Officer: " + out.assigned_to.officer +
+            " | Priority: " + out.assigned_to.priority;
+
+
+        document.getElementById("complaint-id").innerText =
+            out.complaint_id;
+
+        const submittedEl = document.getElementById("submitted-time");
+        if (submittedEl) {
+            submittedEl.innerText = new Date().toLocaleString();
+        }
+
+        document.getElementById("last-updated").innerText =
+            new Date().toLocaleString();
+
+        // ✅ SWITCH PAGE (THIS WAS MISSING)
+        showConfirmationPage();
+
+    } catch (err) {
+        console.error(err);
+        showMessage("Failed to submit issue. Try again.", "error");
+
+        submitBtn.disabled = false;
+        submitBtn.innerText = "Submit Issue";
+        isSubmitting = false;
+    }
+}
+
+/* =========================================================
+   HELPERS
+========================================================= */
+function showMessage(text, type = "success") {
+    const box = document.getElementById("site-message");
+    box.innerText = text;
+    box.className = `site-message ${type}`;
+    box.style.display = "block";
+    setTimeout(() => box.style.display = "none", 4000);
+}
+
+function convertDMSToDecimal(dms, ref) {
+    let dec = dms[0].numerator / dms[0].denominator +
+              dms[1].numerator / dms[1].denominator / 60 +
+              dms[2].numerator / dms[2].denominator / 3600;
+    return (ref === "S" || ref === "W") ? -dec : dec;
+}
+
+function parseExifDate(str) {
+    const [d, t] = str.split(" ");
+    const [y, m, da] = d.split(":");
+    const [h, mi, s] = t.split(":");
+    return new Date(y, m - 1, da, h, mi, s);
+}
+
+function getDistanceMeters(lat1, lng1, lat2, lng2) {
+    const R = 6371000;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1 * Math.PI / 180) *
+        Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/* =========================================================
+   MODALS & GEOLOCATION
+========================================================= */
+function openImageModal(src) {
+    document.getElementById("modalImage").src = src;
+    document.getElementById("imageModal").style.display = "flex";
+}
+
+function closeImageModal() {
+    document.getElementById("imageModal").style.display = "none";
+}
+
+function openLocationModal() {
+    document.getElementById("location-modal").style.display = "flex";
+}
+
+function closeLocationModal() {
+    document.getElementById("location-modal").style.display = "none";
+}
+
+function requestLocationPermission() {
+    const btn = document.getElementById("enableLocationBtn");
+
+    // UI feedback
+    btn.disabled = true;
+    btn.innerText = "Fetching location...";
+
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            // SUCCESS
+            setMapLocation(
+                pos.coords.latitude,
+                pos.coords.longitude
+            );
+
+            closeLocationModal(); // ✅ CLOSE MODAL ON SUCCESS
+
+            // Reset button
+            btn.disabled = false;
+            btn.innerText = "Enable Location";
+        },
+        (err) => {
+            // ERROR
+            showMessage("Unable to get location. Please allow GPS or adjust pin manually.", "error");
+
+            closeLocationModal(); // ✅ CLOSE MODAL ON FAILURE
+
+            // Reset button
+            btn.disabled = false;
+            btn.innerText = "Enable Location";
+
+            console.error(err);
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 20000,
+            maximumAge: 0
+        }
+    );
+}
+
+/* =========================================================
+   INIT
+========================================================= */
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("submitIssueBtn").disabled = true;
+
+    showOnly(dashboardPage);
+    loadUserCounts();
+    loadUserComplaints();
+
+    document.querySelectorAll("a[href]").forEach(link => {
+        link.addEventListener("click", () => {
+            isInternalNavigation = true;
+        });
+    });
+});
+
+// Warn ONLY for back / refresh / tab close
+window.addEventListener("beforeunload", function (e) {
+    if (!isInternalNavigation) {
+        e.preventDefault();
+        e.returnValue = "";
+    }
+});
+
+
+
+</script>
+</body>
+</html>

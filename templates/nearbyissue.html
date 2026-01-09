@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CivicConnect - Nearby Issues</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/nearbyissues.css') }}">
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <nav class="navbar">
+
+                <div class="logo">
+                    <i class="fas fa-city"></i>
+                    <span>CivicConnect</span>
+                </div>
+
+                <div class="nav-links">
+                    <a href="/home-page">Home</a>
+                    <a href="/nearbyissue" class="active">Nearby Issues</a>
+                    <a href="/user-dashboard">Report-Issue</a>
+                    <a href="/help">Help</a>
+                </div>
+
+                <div class="user-actions">
+                    {% if session.get("user_role") %}
+                        <span style="font-weight:600; color:#2563eb;">
+                            👤 Logged in as {{ session.get("user_name", session.get("user_role")) }}
+                        </span>
+                        <a href="/logout" class="btn btn-outline" style="margin-left:10px;">Logout</a>
+                    {% else %}
+                        <a href="/login-page" class="btn btn-outline">Login</a>
+                        <a href="/signup-page" class="btn btn-primary">Sign Up</a>
+                    {% endif %}
+                </div>
+
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>Nearby Civic Issues</h1>
+            <p>
+                Track and monitor reported issues in your area.
+                Stay informed about what's being fixed around you.
+            </p>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="container">
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <button class="back-btn" onclick="window.location.href='/home-page'">
+                <i class="fas fa-chevron-left"></i>
+                Back to Home
+            </button>
+
+            <i class="fas fa-map-marker-alt"></i>
+            <h2>Issues Reported in Your Area</h2>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-cards">
+
+            <div class="stat-card">
+                <div class="stat-icon total">
+                    <i class="fas fa-list-alt"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Total Issues</h3>
+                    <div class="stat-number" id="total-count">0</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon pending">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Pending</h3>
+                    <div class="stat-number" id="pending-count">0</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon progress">
+                    <i class="fas fa-tools"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>In Progress</h3>
+                    <div class="stat-number" id="progress-count">0</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon resolved">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Resolved</h3>
+                    <div class="stat-number" id="resolved-count">0</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Table Section -->
+        <div class="table-section">
+
+            <div class="section-header">
+                <h2>Reported Issues</h2>
+                <button class="btn btn-outline" onclick="refreshIssues()">
+                    <i class="fas fa-sync-alt"></i> View ALL
+                </button>
+            </div>
+
+            <div class="table-container">
+                <table class="complaints-table">
+
+                    <thead>
+                        <tr>
+                            <th onclick="sortIssues('issue_id')">ID ⬍</th>
+                            <th onclick="sortIssues('detected_issue')">Issue Type ⬍</th>
+                            <th>Description</th>
+                            <th>Location</th>
+                            <th onclick="sortIssues('status')">Status ⬍</th>
+                            <th onclick="sortIssues('created_at')">Reported On ⬍</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="complaints-tbody">
+                        <tr>
+                            <td colspan="7">
+                                <div class="loading">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <p>Loading nearby issues...</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+
+                </table>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+
+            <div class="footer-content">
+
+                <div class="footer-column">
+                    <h3>Quick Links</h3>
+                    <ul class="footer-links">
+                        <li><a href="/home-page">Report an Issue</a></li>
+                        <li><a href="#" class="active">View Nearby Issues</a></li>
+                        <li><a href="/help">Help / FAQ</a></li>
+                        <li><a href="/signup-page">Sign Up</a></li>
+                        <li><a href="/login-page">Login</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-column">
+                    <h3>Contact Us</h3>
+                    <ul class="footer-links">
+                        <li><a href="tel:1800CITYHELP"><i class="fas fa-phone"></i> 91+ 9876543210</a></li>
+                        <li><a href="mailto:support@civicconnect.gov"><i class="fas fa-envelope"></i> civicconnect@gmail.com</a></li>
+                        <li><a href="#"><i class="fas fa-map-marker-alt"></i> City Hall, 123 Government Plaza</a></li>
+                    </ul>
+                </div>
+
+            </div>
+
+            <div class="copyright">
+                <p>&copy; 2025 CivicConnect. All rights reserved.</p>
+            </div>
+
+        </div>
+    </footer>
+
+    <!-- Issue Details Modal -->
+    <div class="modal" id="issue-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Issue Details</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modal-content"></div>
+        </div>
+    </div>
+
+
+
+<script>
+    // Mock data for demonstration
+    let filteredIssues = [];
+    let currentSortField = null;
+    let currentSortOrder = "asc";
+    let mockIssues = [];
+    let userLocation = null;
+
+
+
+    async function loadNearbyIssues() {
+        try {
+            const res = await fetch("http://127.0.0.1:5000/issues/nearby");
+            const data = await res.json();
+
+            filteredIssues = data;
+            updateTable();
+
+        } catch (error) {
+            console.error("Backend Error:", error);
+            alert("Failed to load nearby issues");
+        }
+    }
+
+    function sortIssues(field) {
+
+        // Remove previous sorted highlight
+        document.querySelectorAll(".complaints-table th")
+            .forEach(th => th.classList.remove("sorted"));
+
+        // Toggle sort order if same column
+        if (currentSortField === field) {
+            currentSortOrder = currentSortOrder === "asc" ? "desc" : "asc";
+        } else {
+            currentSortField = field;
+            currentSortOrder = "asc";
+        }
+
+        filteredIssues.sort((a, b) => {
+
+            let valA = a[field];
+            let valB = b[field];
+
+            // Handle null / undefined
+            if (valA == null) return 1;
+            if (valB == null) return -1;
+
+            // DATE SORT (Reported On)
+            if (field === "created_at") {
+                return currentSortOrder === "asc"
+                    ? new Date(valA) - new Date(valB)
+                    : new Date(valB) - new Date(valA);
+            }
+
+            // NUMBER SORT (ID)
+            if (field === "issue_id") {
+                return currentSortOrder === "asc"
+                    ? valA - valB
+                    : valB - valA;
+            }
+
+            // STRING SORT (Issue Type, Status)
+            return currentSortOrder === "asc"
+                ? String(valA).localeCompare(String(valB))
+                : String(valB).localeCompare(String(valA));
+        });
+                // Highlight current sorted column
+            document.querySelectorAll(".complaints-table th").forEach(th => {
+                if (th.getAttribute("onclick")?.includes(field)) {
+                    th.classList.add("sorted");
+                }
+            });
+        updateTable();
+    }
+
+    function updateTable() {
+        const tbody = document.getElementById("complaints-tbody");
+
+        let total = filteredIssues.length;
+        currentSortField = currentSortField;
+        currentSortOrder = currentSortOrder; // asc | desc
+
+
+        let pending = 0;
+        let progress = 0;
+        let resolved = 0;
+
+        tbody.innerHTML = "";
+
+        if (total === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9">No nearby issues found.</td>
+                </tr>
+            `;
+        }
+
+        filteredIssues.forEach(issue => {
+
+            if (issue.status === "Pending") pending++;
+            if (issue.status === "In Progress") progress++;
+            if (issue.status === "Resolved") resolved++;
+
+            const row = document.createElement("tr");
+
+            row.innerHTML = `
+                <td><strong>#CN-${issue.issue_id}</strong></td>
+                <td>${issue.detected_issue}</td>
+                <td>${issue.description || "No description"}</td>
+                <td>${issue.location_text || "Unknown location"}</td>
+                <td>
+                    <span class="status-badge status-${issue.status.toLowerCase().replace(" ", "-")}">
+                        ${issue.status}
+                    </span>
+                </td>
+                <td>${issue.created_at?.substring(0, 10) || "N/A"}</td>
+                <td>
+                    <button class="btn-small btn-view"
+                        onclick="viewIssueDetails(${issue.issue_id})">
+                        <i class="fas fa-eye"></i> View
+                    </button>
+                </td>
+            `;
+
+            tbody.appendChild(row);
+        });
+
+        document.getElementById("total-count").textContent = total;
+        document.getElementById("pending-count").textContent = pending;
+        document.getElementById("progress-count").textContent = progress;
+        document.getElementById("resolved-count").textContent = resolved;
+    }
+
+    function applyFilters() {
+        const issueType = document.getElementById("issue-type").value;
+        const status = document.getElementById("status").value;
+        const severity = document.getElementById("severity").value;
+        const distance = parseInt(document.getElementById("distance").value);
+
+        filteredIssues = mockIssues.filter(issue => {
+
+            if (issueType && issue.type !== issueType) return false;
+            if (status && issue.status !== status) return false;
+            if (severity && issue.severity !== severity) return false;
+
+            if (userLocation && distance) {
+                const issueDistance = getDistance(
+                    userLocation[0],
+                    userLocation[1],
+                    issue.lat,
+                    issue.lng
+                );
+                if (issueDistance > distance) return false;
+            }
+
+            return true;
+        });
+
+        updateTable();
+    }
+
+    function resetFilters() {
+        document.getElementById("issue-type").value = "";
+        document.getElementById("status").value = "";
+        document.getElementById("severity").value = "";
+        document.getElementById("distance").value = 5;
+        document.getElementById("distance-value").textContent = "5 km";
+
+        filteredIssues = [...mockIssues];
+        updateTable();
+    }
+
+    function refreshIssues() {
+        loadNearbyIssues();
+    }
+
+async function viewIssueDetails(issueId) {
+    try {
+        const modalContent = document.getElementById("modal-content");
+        modalContent.innerHTML = "Loading...";
+
+        const res = await fetch(`http://127.0.0.1:5000/issue/${issueId}`);
+
+        if (!res.ok) {
+            throw new Error("Issue not found");
+        }
+
+        const issue = await res.json();
+
+        modalContent.innerHTML = `
+            <h3>${issue.detected_issue}</h3>
+            <p><strong>ID:</strong> #CN-${issue.issue_id}</p>
+            <p><strong>Status:</strong> ${issue.status}</p>
+            <p><strong>Location:</strong> ${issue.location_text}</p>
+            <p><strong>Description:</strong> ${issue.description || "N/A"}</p>
+            <p><strong>Department:</strong> ${issue.assigned_department || "N/A"}</p>
+
+            ${issue.image1_path 
+                ? `<img src="/uploads/${issue.image1_path}"
+                    style="width:100%; border-radius:8px; margin-top:10px;">`
+                : `<p style="color:#666;">No image available</p>`
+            }
+        `;
+
+        document.getElementById("issue-modal").style.display = "flex";
+        document.body.style.overflow = "hidden";
+
+    } catch (err) {
+        console.error("Modal error:", err);
+        alert("Failed to load issue details");
+    }
+}
+
+    function closeModal() {
+        document.getElementById("issue-modal").style.display = "none";
+    }
+
+    function upvoteIssue(issueId) {
+        const issue = mockIssues.find(i => i.id === issueId);
+        if (issue) {
+            issue.upvotes++;
+            updateTable();
+            alert("Thank you for your upvote!");
+        }
+    }
+
+    function getStatusText(status) {
+        const statusMap = {
+            pending: "Pending",
+            "in-progress": "In Progress",
+            resolved: "Resolved",
+            rejected: "Rejected"
+        };
+        return statusMap[status] || status;
+    }
+
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric"
+        });
+    }
+
+    function getDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) *
+            Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    const distanceSlider = document.getElementById("distance");
+
+    if (distanceSlider) {
+        distanceSlider.addEventListener("input", function () {
+            document.getElementById("distance-value").textContent =
+                this.value + " km";
+        });
+    }
+
+    function isUserLoggedIn() {
+        return localStorage.getItem("cc_user_logged_in") === "true";
+    }
+
+function updateUserActions() {
+    const guest = document.getElementById("user-actions-guest");
+    const auth = document.getElementById("user-actions-auth");
+    const emailEl = document.getElementById("user-email");
+    const profileBtn = document.getElementById("profile-btn");
+    const logoutBtn = document.getElementById("logout-btn");
+
+    if (isUserLoggedIn()) {
+        if (guest) guest.style.display = "none";
+        if (auth) auth.style.display = "flex";
+
+        const email = localStorage.getItem("cc_user_email") || "Account";
+        if (emailEl) emailEl.textContent = email;
+
+        if (profileBtn) profileBtn.onclick = goToDashboard;
+
+        if (logoutBtn) {
+            logoutBtn.onclick = () => {
+                localStorage.clear();
+                updateUserActions();
+                window.location.href = "/home-page";
+            };
+        }
+
+    } else {
+        if (guest) guest.style.display = "flex";
+        if (auth) auth.style.display = "none";
+        if (emailEl) emailEl.textContent = "";
+    }
+}
+
+
+    function goToDashboard() {
+        const role = localStorage.getItem("cc_user_role") || "citizen";
+        if (role === "officer") {
+            window.location.href = "officedashbord.html";
+        } else {
+            window.location.href = "/user-dashboard";
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        loadNearbyIssues();
+        updateUserActions();
+    });
+
+    window.onclick = function (event) {
+        const modal = document.getElementById("issue-modal");
+        if (event.target === modal) {
+            closeModal();
+        }
+    };
+
+    let isInternalNavigation = false;
+
+    document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll("a[href]").forEach(link => {
+            link.addEventListener("click", () => {
+                isInternalNavigation = true;
+            });
+        });
+    });
+
+    document.getElementById("logoutBtn")?.addEventListener("click", () => {
+        isInternalNavigation = true;
+        window.location.href = "/logout";
+    });
+
+    window.addEventListener("beforeunload", function (e) {
+        if (!isInternalNavigation) {
+            e.preventDefault();
+            e.returnValue = "";
+        }
+    });
+</script>
+
+</body>
+</html>

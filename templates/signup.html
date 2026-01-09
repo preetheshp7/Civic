@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign Up - CivicConnect</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/signup.css') }}">
+</head>
+<body>
+
+<div class="page-container">
+<div class="top-home">
+    <a href="/home-page" class="home-btn">
+        <i class="fas fa-home"></i>
+        Home
+    </a>
+</div>
+
+    <!-- ROLE SELECTOR -->
+    <div class="role-selector">
+        <div class="role-tab active" onclick="selectRole('citizen', this)">
+            <i class="fas fa-user"></i>
+            <span>Citizen Signup</span>
+        </div>
+        <div class="role-tab" onclick="selectRole('officer', this)">
+            <i class="fas fa-user-shield"></i>
+            <span>Officer Signup</span>
+        </div>
+    </div>
+
+    <!-- SIGNUP CARD -->
+    <div class="card signup-form-card">
+
+        <div class="left">
+            <div class="logo"><i class="fas fa-city"></i><span>CivicConnect</span></div>
+            <h1 id="signupTitle">Citizen Signup</h1>
+            <p class="sub" id="signupSubtitle">
+                Create a citizen account to report and track civic issues.
+            </p>
+        </div>
+
+
+        <div class="right">
+            <form id="signupForm">
+
+                <input type="hidden" id="role" value="citizen">
+
+                <div class="form-group">
+                    <label>Full name</label>
+                    <input type="text" id="name" class="form-control" required>
+                    <div class="error" id="name-error">Please enter your full name</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="email" class="form-control" required>
+                    <div class="error" id="email-error">Please enter a valid email</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" id="phone" class="form-control" required>
+                    <div class="error" id="phone-error">Invalid phone number</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="password" class="form-control" required>
+                    <div class="error" id="password-error">Minimum 6 characters</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Confirm password</label>
+                    <input type="password" id="confirm" class="form-control" required>
+                    <div class="error" id="confirm-error">Passwords do not match</div>
+                </div>
+
+                <!-- OFFICER DEPARTMENT -->
+                <div class="form-group hidden" id="departmentGroup">
+                    <label>Department</label>
+                    <select id="department" class="form-control">
+                        <option value="">-- Select department --</option>
+                        <option value="roads">Roads & Transport</option>
+                        <option value="sanitation">Sanitation</option>
+                        <option value="municipal">Municipal Office</option>
+                    </select>
+                    <div class="error" id="department-error">Please select a department</div>
+                </div>
+
+                <!-- AREA (CITIZEN ONLY) -->
+                <div id="areaGroup">
+                    <div class="form-group">
+                        <label>Select Area</label>
+                        <select id="location" class="form-control">
+                            <option value="">-- Select area --</option>
+                            <option value="574200">Puttur Main City</option>
+                            <option value="574201">Bolwar, Court Hill(puttur)</option>
+                            <option value="574202">Darbe</option>
+                            <option value="574203">Bannur</option>
+                            <option value="574210">Aryapu</option>
+                            <option value="574221">Kedambady</option>
+                            <option value="574223">Ariadka</option>
+                            <option value="574241">Bajathur</option>
+                            <option value="574285">Alankar</option>
+                        </select>
+                        <div class="error" id="location-error">Select area</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>PIN Code</label>
+                        <input type="text" id="pincode" class="form-control" readonly>
+                        <div class="error" id="pincode-error">Invalid PIN</div>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button class="btn" type="submit">Create account</button>
+                    <a href="/login-page">Already have an account?</a>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+/* ================= ROLE SWITCH ================= */
+function selectRole(role, el) {
+    document.getElementById("role").value = role;
+
+    document.querySelectorAll(".role-tab").forEach(tab =>
+        tab.classList.remove("active")
+    );
+    el.classList.add("active");
+
+    const areaGroup = document.getElementById("areaGroup");
+    const departmentGroup = document.getElementById("departmentGroup");
+
+    if (role === "citizen") {
+        signupTitle.innerText = "Citizen Signup";
+        signupSubtitle.innerText =
+            "Create a citizen account to report and track civic issues.";
+        areaGroup.classList.remove("hidden");
+        departmentGroup.classList.add("hidden");
+    } else {
+        signupTitle.innerText = "Officer Signup";
+        signupSubtitle.innerText =
+            "Officer accounts require admin verification before activation.";
+        areaGroup.classList.add("hidden");
+        departmentGroup.classList.remove("hidden");
+    }
+}
+
+/* ================= VALIDATION ================= */
+function validateEmail(email){
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+const ALLOWED_PINCODES = [
+    '574201','574202','574210','574221',
+    '574223','574241','574285','574203','574200'
+];
+
+document.getElementById('location').addEventListener('change', function(){
+    const pin = document.getElementById('pincode');
+    pin.value = this.value || '';
+});
+
+/* ================= FORM SUBMIT ================= */
+document.getElementById('signupForm').addEventListener('submit', function(e){
+    e.preventDefault();
+
+    const name = nameInput = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const role = document.getElementById('role').value;
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm').value;
+    const location = document.getElementById('location').value;
+    const pincode = document.getElementById('pincode').value;
+    const department = document.getElementById('department').value;
+
+    document.querySelectorAll('.error').forEach(e => e.style.display='none');
+    let ok = true;
+
+    if(!name){ document.getElementById('name-error').style.display='block'; ok=false }
+    if(!validateEmail(email)){ document.getElementById('email-error').style.display='block'; ok=false }
+    if(!/^[0-9]{10}$|^\+91[0-9]{10}$/.test(phone.replace(/\D/g,''))){ document.getElementById('phone-error').style.display='block'; ok=false }
+    if(password.length<6){ document.getElementById('password-error').style.display='block'; ok=false }
+    if(password!==confirm){ document.getElementById('confirm-error').style.display='block'; ok=false }
+
+    if(role === "citizen"){
+        if(!location){ document.getElementById('location-error').style.display='block'; ok=false }
+        if(!ALLOWED_PINCODES.includes(pincode)){ document.getElementById('pincode-error').style.display='block'; ok=false }
+    }
+
+    if(role === "officer" && !department){
+        document.getElementById('department-error').style.display='block';
+        ok=false;
+    }
+
+    if(!ok) return;
+
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("email", email);
+    formData.append("phone", phone);
+    formData.append("password", password);
+    formData.append("role", role);
+    if(role === "citizen") formData.append("pincode", pincode);
+    if(role === "officer") formData.append("department", department);
+
+    fetch("http://127.0.0.1:5000/signup", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert("Signup successful!");
+            window.location.href = "/home-page";
+        } else {
+            alert(data.message || "Signup failed");
+        }
+    });
+});
+</script>
+
+</body>
+</html>

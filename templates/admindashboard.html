@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - CivicConnect</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admindashborad.css') }}">
+</head>
+<body>
+   <!-- ================= SIDEBAR ================= -->
+<div class="sidebar">
+    <div class="sidebar-header">
+        <i class="fas fa-city"></i>
+        <span class="logo-text">CivicConnect</span>
+    </div>
+
+    <div class="department-info">
+        <div id="sidebar-department" class="department-name">Admin Dashboard</div>
+        <!--<div class="department-role">Field Officer</div>-->
+    </div>
+
+    <div class="sidebar-menu">
+        <a href="#main" id="menu-dashboard" class="menu-item active">
+            <i class="fas fa-tachometer-alt"></i>
+            <span class="menu-text">Dashboard</span>
+        </a>
+
+        <a href="#complaints-section" id="menu-assigned" class="menu-item">
+            <i class="fas fa-flag"></i>
+            <span class="menu-text">Assigned Complaints</span>
+        </a>
+
+        <a href="#complaint-section" class="menu-item">
+            <i class="fas fa-chart-bar"></i>
+            <span class="menu-text">Analytics</span>
+        </a>
+
+        <a href="#officer-section" class="menu-item">
+            <i class="fas fa-user-shield"></i>
+            <span class="menu-text">Officers</span>
+        </a>
+
+        <a href="#userlist-section" class="menu-item">
+            <i class="fas fa-users"></i>
+            <span class="menu-text">User List</span>
+        </a>
+
+        <div class="menu-divider"></div>
+
+        <a href="#" class="menu-item" onclick="logout(); return false;">
+            <i class="fas fa-sign-out-alt"></i>
+            <span class="menu-text">Logout</span>
+        </a>
+    </div>
+</div>
+
+<!-- ================= MAIN CONTENT ================= -->
+<div id="main"></div>
+
+<div class="main-content">
+    <div class="header">
+        <h1>Admin Dashboard</h1>
+        <div class="header-actions">
+            <div class="user-info">
+                <div class="user-avatar" id="user-avatar-initials">AD</div>
+                <span id="user-display-name">Admin</span>
+            </div>
+            <button class="btn btn-outline" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- ================= DASHBOARD STATS ================= -->
+    <div id="dashboard-section" class="dashboard-stats">
+        <div class="stat-card">
+            <div class="stat-icon garbage">
+                <i class="fas fa-trash"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-number" id="garbage-count">0</div>
+                <div class="stat-label">Garbage Issues</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon roads">
+                <i class="fas fa-road"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-number" id="road-count">0</div>
+                <div class="stat-label">Road Issues</div>
+            </div>
+        </div>
+    </div>
+    <div class="stat-card general-card">
+        <div class="stat-icon general">
+            <i class="fas fa-cogs"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-number" id="general-count">0</div>
+            <div class="stat-label">General Services</div>
+        </div>
+    </div>
+
+
+    <!-- ================= PENDING OFFICERS ================= -->
+    <div id="pending-section" class="complaints-section">
+        <div class="section-header">
+            <h2>Pending Officer Approvals</h2>
+        </div>
+
+        <div class="table-container">
+            <table class="complaints-table">
+                <thead>
+                    <tr>
+                        <th>Officer ID</th>
+                        <th>Officer Name</th>
+                        <th>Email</th>
+                        <th>Department</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="pending-officers-table">
+                    <!-- JS injects rows -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+        <!-- ================= BLOCKED OFFICERS ================= -->
+        <div class="complaints-section">
+            <div class="section-header">
+                <h2>Blocked Officers (Reactivation)</h2>
+            </div>
+
+            <div class="table-container">
+                <table class="complaints-table">
+                    <thead>
+                        <tr>
+                            <th>Officer ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Department</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="blocked-officers-table"></tbody>
+                </table>
+            </div>
+        </div>
+
+
+    <!-- ================= ALL COMPLAINTS ================= -->
+    <div id="complaints-section" class="complaints-section">
+        <div class="section-header">
+            <h2>All Complaints</h2>
+            <div class="filter-controls">
+                <select class="filter-select" id="issueFilter">
+                    <option value="all">All Issues</option>
+                    <option value="garbage">Garbage</option>
+                    <option value="pothole">Roads</option>
+                    <option value="general">General</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table class="complaints-table">
+                <thead>
+                    <tr>
+                        <th>Complaint ID</th>
+                        <th>Issue Type</th>
+                        <th>Location</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-issues-table"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ================= ANALYTICS ================= -->
+    <div id="complaint-section">
+        <div class="complaints-section" style="padding:20px;">
+            <h2>📊 Monthly Complaint Analysis</h2>
+
+            <div style="margin-bottom:15px; display:flex; gap:10px;">
+                <button class="btn btn-outline" onclick="showLineChart()">Line Graph</button>
+                <button class="btn btn-outline" onclick="showPieChart()">Pie Chart</button>
+                <button class="btn btn-outline" onclick="showBarChart()">Histogram</button>
+            </div>
+
+            <canvas id="monthlyChart" style="width:100%; max-width:800px;"></canvas>
+        </div>
+    </div>
+
+<!-- ================= OFFICERS SECTION ================= -->
+<div id="officer-section" class="complaints-section">
+    <div class="section-header">
+        <h2>Officers</h2>
+    </div>
+
+    <!-- SEARCH + FILTER -->
+    <div class="search-controls">
+        <input type="text" id="officerSearch" placeholder="Search officer name or email">
+        <select id="officerStatus">
+            <option value="all">All</option>
+            <option value="pending">Pending</option>
+            <option value="active">Active</option>
+            <option value="blocked">Blocked</option>
+        </select>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-container">
+        <table class="complaints-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Department</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="all-officers-table"></tbody>
+        </table>
+    </div>
+</div>
+
+
+<!-- ================= USER LIST SECTION ================= -->
+<div id="userlist-section" class="complaints-section">
+    <div class="section-header">
+        <h2>User List</h2>
+    </div>
+
+    <!-- SEARCH + FILTER -->
+    <div class="search-controls">
+        <input type="text" id="userSearch" placeholder="Search user name or email">
+        <select id="userStatus">
+            <option value="all">All</option>
+            <option value="active">Active</option>
+            <option value="blocked">Blocked</option>
+        </select>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-container">
+        <table class="complaints-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Pincode</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="all-users-table"></tbody>
+        </table>
+    </div>
+</div>
+
+
+
+<!-- ================= COMPLAINT MODAL ================= -->
+<div id="complaint-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Complaint Details</h2>
+            <button class="close-modal" onclick="closeComplaintDetails()">&times;</button>
+        </div>
+
+        <div class="modal-body">
+            <div class="complaint-details-grid">
+                <div>
+                    <img id="modal-image" class="complaint-image">
+
+                    <div class="ai-detection">
+                        <div class="detail-label">AI-Detected Issue Type</div>
+                        <div class="detail-value" id="modal-issue-ai"></div>
+                    </div>
+
+                    <div class="detail-group">
+                        <div class="detail-label">Citizen Information</div>
+                        <div class="detail-value" id="modal-citizen-info"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="detail-group">
+                        <div class="detail-label">Complaint ID</div>
+                        <div class="detail-value" id="modal-complaint-id"></div>
+                    </div>
+
+                    <div class="detail-group">
+                        <div class="detail-label">Location</div>
+                        <div class="detail-value" id="modal-location"></div>
+                    </div>
+
+                    <div class="detail-group">
+                        <div class="detail-label">Submitted</div>
+                        <div class="detail-value" id="modal-submitted"></div>
+                    </div>
+
+                    <div class="detail-group">
+                        <div class="detail-label">Assigned Department</div>
+                        <div class="detail-value" id="modal-department"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const ADMIN_API = "/admin";
+
+
+/* ============================================================
+   Helper utilities
+============================================================ */
+function safeSetText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.innerText = text ?? "";
+}
+
+function safeSetHTML(id, html) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html ?? "";
+}
+
+function safeSetSrc(id, src) {
+    const el = document.getElementById(id);
+    if (el) el.src = src ?? "";
+}
+
+function basename(path) {
+    return path ? path.split(/[\\/]/).pop() : "";
+}
+
+/* ============================================================
+   LOAD PENDING OFFICERS
+============================================================ */
+async function loadPendingOfficers() {
+    const res = await fetch(`${ADMIN_API}/officers/pending`);
+    const officers = await res.json();
+
+    const table = document.getElementById("pending-officers-table");
+    table.innerHTML = "";
+
+    if (!officers.length) {
+        table.innerHTML =
+            `<tr><td colspan="5" style="text-align:center;">No pending officers</td></tr>`;
+        return;
+    }
+
+    officers.forEach(o => {
+        table.innerHTML += `
+            <tr>
+                <td>${o.id}</td>
+                <td>${o.name}</td>
+                <td>${o.email}</td>
+                <td>${o.department}</td>
+                <td>
+                    <button class="action-btn btn-approve"
+                            onclick="approveOfficer('${o.id}')">
+                        Approve
+                    </button>
+                    <button class="action-btn btn-reject"
+                            onclick="rejectOfficer('${o.id}')">
+                        Reject
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+/* ============================================================
+   APPROVE / REJECT
+============================================================ */
+async function approveOfficer(id) {
+    const fd = new FormData();
+    fd.append("officer_id", id);
+    await fetch(`${ADMIN_API}/approve-officer`, { method: "POST", body: fd });
+    loadPendingOfficers();
+}
+
+async function rejectOfficer(id) {
+    if (!confirm("Reject this officer?")) return;
+    const fd = new FormData();
+    fd.append("officer_id", id);
+    await fetch(`${ADMIN_API}/reject-officer`, { method: "POST", body: fd });
+    loadPendingOfficers();
+}
+
+
+/* ============================================================
+   LOAD BLOCKED OFFICERS
+============================================================ */
+async function loadBlockedOfficers() {
+    const res = await fetch(`${ADMIN_API}/officers/blocked`);
+    const officers = await res.json();
+
+    const table = document.getElementById("blocked-officers-table");
+    table.innerHTML = "";
+
+    if (!officers.length) {
+        table.innerHTML =
+            `<tr><td colspan="5" style="text-align:center;">No blocked officers</td></tr>`;
+        return;
+    }
+
+    officers.forEach(o => {
+        table.innerHTML += `
+            <tr>
+                <td>${o.id}</td>
+                <td>${o.name}</td>
+                <td>${o.email}</td>
+                <td>${o.department}</td>
+                <td>
+                    <button class="action-btn btn-reactivate"
+                            onclick="reactivateOfficer('${o.id}')">
+                        Reactivate
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+/* ============================================================
+   REACTIVATE OFFICER
+============================================================ */
+async function reactivateOfficer(id) {
+    if (!confirm("Reactivate this officer?")) return;
+
+    const fd = new FormData();
+    fd.append("officer_id", id);
+
+    await fetch(`${ADMIN_API}/reactivate-officer`, {
+        method: "POST",
+        body: fd
+    });
+
+    loadBlockedOfficers();
+    loadPendingOfficers(); // refresh tables
+}
+
+
+/* ============================================================
+   LOAD COMPLAINTS (FILTERED)
+============================================================ */
+async function loadComplaintsByType(type = "all") {
+    const url = `${ADMIN_API}/issues/${type}`;
+    const res = await fetch(url);
+
+    if (!res.ok) {
+        console.error("Failed to load complaints");
+        return;
+    }
+
+    const data = await res.json();
+    const tbody = document.getElementById("admin-issues-table");
+    tbody.innerHTML = "";
+
+    if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No complaints found</td></tr>`;
+        return;
+    }
+
+    data.forEach(i => {
+        tbody.innerHTML += `
+            <tr>
+                <td>#CN-${i.issue_id}</td>
+                <td>${i.detected_issue}</td>
+                <td>${i.location_text || "N/A"}</td>
+                <td>
+                    <button class="btn-view"
+                        onclick="openComplaintDetails('${i.issue_id}')">
+                        <i class="fas fa-eye"></i> View
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+
+/* ============================================================
+   LOAD ALL OFFICERS
+============================================================ */
+async function loadAllOfficers() {
+    const res = await fetch(`${ADMIN_API}/officers/all`);
+    const officers = await res.json();
+
+    const table = document.getElementById("all-officers-table");
+    table.innerHTML = "";
+
+    if (!officers.length) {
+        table.innerHTML =
+          `<tr><td colspan="6" style="text-align:center;">No officers found</td></tr>`;
+        return;
+    }
+
+    officers.forEach(o => {
+let actionBtn = "";
+
+if (o.status === "pending") {
+    actionBtn = `
+        <button class="action-btn btn-approve"
+                onclick="approveOfficer('${o.id}')">
+            Approve
+        </button>`;
+}
+else if (o.status === "blocked") {
+    actionBtn = `
+        <button class="action-btn btn-reactivate"
+                onclick="reactivateOfficer('${o.id}')">
+            Reactivate
+        </button>`;
+}
+else {
+    actionBtn = `
+        <button class="action-btn btn-block"
+                onclick="blockOfficer('${o.id}')">
+            Block
+        </button>`;
+}
+
+
+        table.innerHTML += `
+            <tr>
+                <td>${o.id}</td>
+                <td>${o.name}</td>
+                <td>${o.email}</td>
+                <td>${o.department}</td>
+                <td>${o.status}</td>
+                <td>${actionBtn}</td>
+            </tr>
+        `;
+    });
+}
+
+/* ============================================================
+  Block Officer 
+============================================================ */
+async function blockOfficer(id) {
+    if (!confirm("Block this officer?")) return;
+
+    const fd = new FormData();
+    fd.append("officer_id", id);
+
+    await fetch(`${ADMIN_API}/block-officer`, {
+        method: "POST",
+        body: fd
+    });
+
+    loadAllOfficers();
+    loadPendingOfficers();
+    loadBlockedOfficers();
+}
+
+
+/* ============================================================
+   LOAD ALL USERS
+============================================================ */
+async function loadAllUsers() {
+    const res = await fetch(`${ADMIN_API}/users/all`);
+    const users = await res.json();
+
+    const table = document.getElementById("all-users-table");
+    table.innerHTML = "";
+
+    if (!users.length) {
+        table.innerHTML =
+          `<tr><td colspan="7" style="text-align:center;">No users found</td></tr>`;
+        return;
+    }
+
+    users.forEach(u => {
+        let actionBtn = "";
+
+        if (u.status === "active") {
+            actionBtn = `<button onclick="blockUser('${u.id}')">Block</button>`;
+        } else {
+            actionBtn = `<button onclick="reactivateUser('${u.id}')">Reactivate</button>`;
+        }
+
+        table.innerHTML += `
+            <tr>
+                <td>${u.id}</td>
+                <td>${u.name}</td>
+                <td>${u.email}</td>
+                <td>${u.phone}</td>
+                <td>${u.pincode || "-"}</td>
+                <td>${u.status}</td>
+                <td>${actionBtn}</td>
+            </tr>
+        `;
+    });
+}
+
+async function blockUser(id) {
+    if (!confirm("Block this user?")) return;
+
+    const fd = new FormData();
+    fd.append("user_id", id);
+
+    await fetch(`${ADMIN_API}/block-user`, {
+        method: "POST",
+        body: fd
+    });
+
+    loadAllUsers();
+}
+
+async function reactivateUser(id) {
+    if (!confirm("Reactivate this user?")) return;
+
+    const fd = new FormData();
+    fd.append("user_id", id);
+
+    await fetch(`${ADMIN_API}/reactivate-user`, {
+
+        method: "POST",
+        body: fd
+    });
+
+    loadAllUsers();
+}
+
+/* ============================================================
+//    Search ALL USERS
+// ============================================================ */
+// async function loadAllUsersSearch() {
+//     const res = await fetch(`${ADMIN_API}/users/all`);
+//     const users = await res.json();
+
+//     const table = document.getElementById("all-users-table");
+//     table.innerHTML = "";
+
+//     if (!users.length) {
+//         table.innerHTML =
+//           `<tr><td colspan="7" style="text-align:center;">No users found</td></tr>`;
+//         return;
+//     }
+
+//     users.forEach(u => {
+//         let actionBtn = "";
+
+//         if (u.status === "active") {
+//             actionBtn = `<button onclick="blockUser('${u.id}')">Block</button>`;
+//         } else {
+//             actionBtn = `<button onclick="reactivateUser('${u.id}')">Reactivate</button>`;
+//         }
+
+//         table.innerHTML += `
+//             <tr>
+//                 <td>${u.id}</td>
+//                 <td>${u.name}</td>
+//                 <td>${u.email}</td>
+//                 <td>${u.phone}</td>
+//                 <td>${u.pincode || "-"}</td>
+//                 <td>${u.status}</td>
+//                 <td>${actionBtn}</td>
+//             </tr>
+//         `;
+//     });
+// }
+
+async function searchOfficers() {
+    const q = document.getElementById("officerSearch").value;
+    const status = document.getElementById("officerStatus").value;
+
+    const res = await fetch(`${ADMIN_API}/officers/search?q=${q}&status=${status}`)
+    const officers = await res.json();
+
+    const table = document.getElementById("all-officers-table");
+    table.innerHTML = "";
+
+    if (!officers.length) {
+        table.innerHTML =
+            `<tr><td colspan="6" style="text-align:center;">No officers found</td></tr>`;
+        return;
+    }
+
+    officers.forEach(o => {
+        let action = "";
+
+        if (o.status === "pending") {
+            action = `
+                <button class="action-btn btn-approve"
+                        onclick="approveOfficer('${o.id}')">
+                    Approve
+                </button>`;
+        }
+        else if (o.status === "blocked") {
+            action = `
+                <button class="action-btn btn-reactivate"
+                        onclick="reactivateOfficer('${o.id}')">
+                    Reactivate
+                </button>`;
+        }
+        else {
+            action = `
+                <button class="action-btn btn-block"
+                        onclick="blockOfficer('${o.id}')">
+                    Block
+                </button>`;
+        }
+
+        table.innerHTML += `
+            <tr>
+                <td>${o.id}</td>
+                <td>${o.name}</td>
+                <td>${o.email}</td>
+                <td>${o.department}</td>
+                <td>${o.status}</td>
+                <td>${action}</td>
+            </tr>
+        `;
+    });
+}
+
+async function searchUsers() {
+    const q = document.getElementById("userSearch").value;
+    const status = document.getElementById("userStatus").value;
+
+    const res = await fetch(`${ADMIN_API}/users/search?q=${encodeURIComponent(q)}&status=${status}`);
+    const users = await res.json();
+
+    const table = document.getElementById("all-users-table");
+    table.innerHTML = "";
+
+    if (!users.length) {
+        table.innerHTML =
+          `<tr><td colspan="7" style="text-align:center;">No users found</td></tr>`;
+        return;
+    }
+
+    users.forEach(u => {
+        const action =
+            u.status === "active"
+            ? `<button class="action-btn btn-block"onclick="blockUser('${u.id}')">Block</button>`
+            : `<button class="action-btn btn-reactivate"onclick="reactivateUser('${u.id}')">Reactivate</button>`;
+
+        table.innerHTML += `
+            <tr>
+                <td>${u.id}</td>
+                <td>${u.name}</td>
+                <td>${u.email}</td>
+                <td>${u.phone}</td>
+                <td>${u.pincode || "-"}</td>
+                <td>${u.status}</td>
+                <td>${action}</td>
+            </tr>
+        `;
+    });
+}
+
+/* ============================================================
+   COMPLAINT MODAL
+============================================================ */
+async function openComplaintDetails(id) {
+    const res = await fetch(`${ADMIN_API}/issue/${id}`);
+    const issue = await res.json();
+
+    safeSetText("modal-complaint-id", `#CN-${id}`);
+    safeSetText("modal-location", issue.location_text);
+    safeSetText("modal-submitted", issue.created_at);
+    safeSetText("modal-issue-ai", issue.detected_issue);
+    safeSetText("modal-department", issue.assigned_department);
+
+    if (issue.image1_path) {
+        safeSetSrc("modal-image",
+  `/static/uploads/${basename(issue.image1_path)}`
+);
+
+    }
+
+    safeSetHTML("modal-citizen-info", `
+        <strong>${issue.citizen_name}</strong><br>
+        ${issue.citizen_email}<br>
+        ${issue.citizen_phone}
+    `);
+
+    document.getElementById("complaint-modal").style.display = "flex";
+}
+
+function closeComplaintDetails() {
+    document.getElementById("complaint-modal").style.display = "none";
+}
+
+/* ============================================================
+   COUNTS
+============================================================ */
+async function loadIssueCounts() {
+    const g = await (await fetch("/admin/count/garbage")).json();
+    const r = await (await fetch("/admin/count/pothole")).json();
+    const gen = await (await fetch("/admin/count/general")).json();
+    safeSetText("general-count", gen.count);
+    safeSetText("garbage-count", g.count);
+    safeSetText("road-count", r.count);
+}
+
+/* ============================================================
+   ANALYTICS
+============================================================ */
+let chart = null;
+async function loadAnalytics() {
+    const res = await fetch("/admin/issues/all");
+    const data = await res.json();
+
+    const map = {};
+    data.forEach(i => {
+        if (i.created_at) {
+            const m = i.created_at.slice(0, 7);
+            map[m] = (map[m] || 0) + 1;
+        }
+    });
+
+    renderChart("bar", Object.keys(map), Object.values(map));
+}
+
+function renderChart(type, labels, values) {
+    if (chart) chart.destroy();
+    chart = new Chart(document.getElementById("monthlyChart"), {
+        type,
+        data: { labels, datasets: [{ data: values }] },
+        options: { responsive: true }
+    });
+}
+
+function showBarChart(){ renderChart("bar", chart.data.labels, chart.data.datasets[0].data); }
+function showLineChart(){ renderChart("line", chart.data.labels, chart.data.datasets[0].data); }
+function showPieChart(){ renderChart("pie", chart.data.labels, chart.data.datasets[0].data); }
+
+/* ============================================================
+   INIT
+============================================================ */
+document.addEventListener("DOMContentLoaded", () => {
+
+    // Existing loads
+    loadPendingOfficers();
+    loadBlockedOfficers();
+    loadAllOfficers();
+    loadAllUsers();
+
+    loadComplaintsByType();
+    loadIssueCounts();
+    loadAnalytics();
+
+    // Complaint filter
+    document.getElementById("issueFilter")
+        .addEventListener("change", e =>
+            loadComplaintsByType(e.target.value)
+        );
+
+    // =========================
+    // STEP 5 — SEARCH LISTENERS
+    // =========================
+
+    // Officers search & filter
+    document.getElementById("officerSearch")
+        .addEventListener("input", searchOfficers);
+
+    document.getElementById("officerStatus")
+        .addEventListener("change", searchOfficers);
+
+    // Users search & filter
+    document.getElementById("userSearch")
+        .addEventListener("input", searchUsers);
+
+    document.getElementById("userStatus")
+        .addEventListener("change", searchUsers);
+
+    // Initial search load
+    searchOfficers();
+    searchUsers();
+});
+
+function logout() {
+    fetch("/logout", {
+        method: "POST",
+        credentials: "same-origin"
+    }).then(() => {
+        window.location.href = "/login";
+    });
+}
+
+</script>
+</body>
+</html>

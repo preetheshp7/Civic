@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Officer Login - CivicConnect</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+</head>
+<body>
+
+<div class="page-wrapper">
+
+    <div class="top-home">
+        <a href="/home-page" class="home-btn">
+            <i class="fas fa-home"></i>
+            Home
+        </a>
+    </div>
+
+    <div class="login-container">
+        
+        <!-- Left Side - Welcome Section -->
+        <div class="login-left">
+            <div class="logo">
+                <i class="fas fa-city"></i>
+                <span>CivicConnect</span>
+            </div>
+
+            <div class="welcome-text">
+                <h1>Welcome Back</h1>
+                <p>Login to your account to manage and track civic issues in your community.</p>
+            </div>
+
+            <ul class="features">
+                <li><i class="fas fa-check-circle"></i> Citizens: Report and track complaints</li>
+                <li><i class="fas fa-check-circle"></i> Officers: Manage assigned issues</li>
+                <li><i class="fas fa-check-circle"></i> Real-time status updates</li>
+                <li><i class="fas fa-check-circle"></i> Secure and verified access</li>
+            </ul>
+        </div>
+        
+        <!-- Right Side - Login Form -->
+        <div class="login-right">
+            <div class="form-header">
+                <h2>Login to Your Account</h2>
+                <p>Enter your email and password (Citizens or Officers)</p>
+            </div>
+
+            <!-- ✅ SERVER-SIDE LOGIN FORM -->
+            <form class="login-form" method="POST" action="/login">
+                <div class="form-group">
+                    <label for="username">Email or Username</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-user input-icon"></i>
+                        <input
+                            type="text"
+                            id="username"
+                            name="email"
+                            class="form-control"
+                            placeholder="your@email.com"
+                            required
+                        >
+                    </div>
+                    <div class="error-message" id="username-error"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            class="form-control"
+                            placeholder="Enter your password"
+                            required
+                        >
+                    </div>
+                    <div class="error-message" id="password-error"></div>
+                </div>
+
+                <div class="remember-forgot">
+                    <div class="remember-me">
+                        <input type="checkbox" id="remember">
+                        <label for="remember">Remember me</label>
+                    </div>
+                    <a href="#" class="forgot-password" onclick="openForgotPassword(event)">Forgot password?</a>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Login</button>
+
+                <div class="divider">
+                    <span>Citizens or Officers</span>
+                </div>
+
+                <div class="login-footer">
+                    <p>Don't have an account? <a href="/signup-page">Sign up here</a></p>
+                    <p>© 2023 CivicConnect. All rights reserved.</p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal (UNCHANGED) -->
+    <div id="forgotPasswordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Reset Password</h2>
+                <button class="close-btn" onclick="closeForgotPassword()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Enter your email address and we'll send you a link to reset your password.</p>
+                <input type="email" id="resetEmail" placeholder="officer@cityconnect.gov" required>
+                <div class="error-message" id="reset-error"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-reset" onclick="sendResetLink()">Send Reset Link</button>
+                <button class="btn-cancel" onclick="closeForgotPassword()">Cancel</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

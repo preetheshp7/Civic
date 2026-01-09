@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CivicConnect - Civic Issue Reporting</title>
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Leaflet (single source only) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+</head>
+<body>
+
+<!-- Header -->
+<header>
+    <div class="container">
+        <nav class="navbar">
+            <div class="logo">
+                <i class="fas fa-city"></i>
+                <span>CivicConnect</span>
+            </div>
+
+            <div class="nav-links">
+                <a href="/home-page" class="active">Home</a>
+                <a href="/nearbyissue">Nearby Issues</a>
+                <a href="/user-dashboard">Report-Issue</a>
+                <a href="/help">Help</a>
+            </div>
+
+            <div class="user-actions">
+                {% if session.get("user_role") %}
+                    <span style="font-weight:600; color:#2563eb;">
+                        👤 Logged in as {{ session.get("user_name", session.get("user_role")) }}
+                    </span>
+
+                    <a href="/logout" class="btn btn-outline" style="margin-left:10px;">
+                        Logout
+                    </a>
+                {% else %}
+                    <a href="/login-page" class="btn btn-outline">Login</a>
+                    <a href="/signup-page" class="btn btn-primary">Sign Up</a>
+                {% endif %}
+            </div>
+
+        </nav>
+    </div>
+</header>
+
+<!-- Home Section -->
+<section id="home-page">
+    <div class="hero">
+        <div class="container">
+            <h1>Report Civic Issues Quickly & Easily</h1>
+            <p>Help make our city cleaner, safer, and better by reporting issues directly to authorities.</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="quick-actions">
+            <div class="action-card" onclick="location.href='/login-page'">
+                <div class="action-icon">
+                    <i class="fas fa-flag"></i>
+                </div>
+                <h3>Report an Issue</h3>
+                <p>File a complaint with photos and location details</p>
+            </div>
+
+            <div class="action-card" onclick="location.href='/nearbyissue'">
+                <div class="action-icon">
+                    <i class="fas fa-map-marker-alt"></i>
+                </div>
+                <h3>View Nearby Issues</h3>
+                <p>See issues reported in your area</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="footer-content">
+            <div class="footer-column">
+                <h3>Quick Links</h3>
+                <ul class="footer-links">
+                    <li><a href="/home-page">Home</a></li>
+                    <li><a href="/nearbyissue">Nearby Issues</a></li>
+                    <li><a href="/help">Help / FAQ</a></li>
+                    <li><a href="/signup-page">Sign Up</a></li>
+                    <li><a href="/login-page">Login</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-column">
+                <h3>Contact Us</h3>
+                <ul class="footer-links">
+                    <li><i class="fas fa-phone"></i> +91 9876543210</li>
+                    <li><i class="fas fa-envelope"></i> civicconnect@gmail.com</li>
+                    <li><i class="fas fa-map-marker-alt"></i> City Hall, 123 Government Plaza</li>
+                </ul>
+            </div>
+        </div>
+
+        <p class="copyright">
+            &copy; 2025 CivicConnect. All rights reserved.
+        </p>
+    </div>
+</footer>
+
+</body>
+</html>

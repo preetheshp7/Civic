@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Officer Dashboard - CivicConnect</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/officerdashboard.css') }}">
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-city"></i>
+            <span class="logo-text">CivicConnect</span>
+        </div>
+        
+        <div class="department-info">
+            <div class="department-name" id="departmentName"></div>
+            <div class="department-role">Field Officer</div>
+        </div>
+        
+        <div class="sidebar-menu">
+            <a href="#main" class="menu-item active">
+                <i class="fas fa-tachometer-alt"></i>
+                <span class="menu-text">Dashboard</span>
+            </a>
+            <a href="#complaints" class="menu-item">
+                <i class="fas fa-flag"></i>
+                <span class="menu-text">Assigned Complaints</span>
+            </a>
+            <a href="#complaintsection" class="menu-item">
+                <i class="fas fa-chart-bar"></i>
+                <span class="menu-text">Analytics</span>
+            </a>
+            
+            <div class="menu-divider"></div>
+            
+            <!--<a href="#" class="menu-item">
+                <i class="fas fa-cog"></i>
+                <span class="menu-text">Settings</span>-->
+            </a>
+            <a href="#" id="logoutBtn" class="menu-item">
+
+                <i class="fas fa-sign-out-alt"></i>
+                <span class="menu-text">Logout</span>
+            </a>
+
+        </div>
+    </div>
+
+    <!-- Main Content -->
+     <div id="main"></div>
+    <div class="main-content">
+        <div class="header">
+            <h1>Officer Dashboard</h1>
+            <div class="header-actions">
+                <div class="user-info">
+                    <div class="user-avatar" id="officer-avatar">OF</div>
+                    <span id="officer-name">Officer</span>
+                </div>
+
+                <button class="btn btn-outline">
+                    <i class="fas fa-bell"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Dashboard Stats -->
+        <div class="dashboard-stats">
+            <div class="stat-card">
+                <div class="stat-icon total">
+                    <i class="fas fa-list"></i>
+                </div>
+                <div class="stat-info">
+                    <div id="total-count" class="stat-number">0</div>
+                    <div class="stat-label">Total Reports</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon pending">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-info">
+                    <div id="pending-count" class="stat-number">0</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon resolved">
+                    <i class="fas fa-check"></i>
+                </div>
+                <div class="stat-info">
+                    <div id="resolved-count" class="stat-number">0</div>
+                    <div class="stat-label">Resolved</div>
+                </div>
+            </div>
+        </div>
+
+        
+        <!-- ✅ Priority Pothole Complaints -->
+        <div class="priority-section">
+            <div class="section-header">
+                <h2>Priority Complaints</h2>                <button class="btn btn-outline" id="viewAllPriorityBtn">View All</button>
+            </div>
+
+            <div class="priority-cards" id="priority-cards">
+                <p>Loading priority complaints...</p>
+            </div>
+
+
+        </div>
+
+        <!-- Complaints Table -->
+        <div id="complaints">
+        <div class="complaints-section">
+            
+            <div class="table-container">
+                <table class="complaints-table">
+                    <thead>
+                        <tr>
+                            <th>Complaint ID</th>
+                            <th>Issue Type</th>
+                            <th>Location</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        </div>
+        <!-- 📊 Monthly Pothole Complaints Graph -->
+          <div id="complaintsection">
+        <div class="complaints-section" style="padding:20px;">
+            
+            <h2>📊 Monthly Complaint Analysis</h2>
+
+            <!-- ✅ GRAPH TYPE BUTTONS -->
+            <div style="margin-bottom:15px; display:flex; gap:10px;">
+                <button class="btn btn-outline" onclick="showPotholeLineChart()">Line Graph</button>
+                <button class="btn btn-outline" onclick="showPotholePieChart()">Pie Chart</button>
+                <button class="btn btn-outline" onclick="showPotholeBarChart()">Histogram</button>
+
+            </div>
+
+            <canvas id="potholeMonthlyChart" style="width:100%; max-width:800px;"></canvas>
+
+        </div>
+        </div>
+    </div>
+
+    <!-- Complaint Details Modal -->
+    <div id="complaint-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Complaint Details</h2>
+      <button class="close-modal" onclick="closeComplaintDetails()">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="complaint-details-grid">
+
+        <div>
+          <img id="modal-image" class="complaint-image">
+
+          <div class="ai-detection">
+            <div class="detail-label">AI Issue</div>
+            <div class="detail-value" id="modal-issue-ai"></div>
+          </div>
+
+          <div class="detail-group">
+            <div class="detail-label">Description</div>
+            <div class="detail-value" id="modal-description"></div>
+          </div>
+
+          <div class="detail-group">
+            <div class="detail-label">Citizen Info</div>
+            <div class="detail-value" id="modal-citizen-info"></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="detail-group">
+            <div class="detail-label">Complaint ID</div>
+            <div class="detail-value" id="modal-complaint-id"></div>
+          </div>
+
+          <div class="detail-group">
+            <div class="detail-label">Location</div>
+            <div class="detail-value" id="modal-location"></div>
+          </div>
+
+          <div class="detail-group">
+            <div class="detail-label">Submitted</div>
+            <div class="detail-value" id="modal-submitted"></div>
+          </div>
+
+          <div class="detail-group">
+            <div class="detail-label">Department</div>
+            <div class="detail-value" id="modal-department"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+/* =======================================================
+   GLOBAL STATE
+======================================================= */
+let officerDepartment = "";
+let potholeChart = null;
+let potholeLabels = [];
+let potholeValues = [];
+let allPriorityComplaints = [];
+let showAllPriority = false;
+let isInternalNavigation = false;
+
+/* =======================================================
+   DASHBOARD INITIAL LOADER (ONLY ONE)
+======================================================= */
+document.addEventListener("DOMContentLoaded", loadOfficerDashboard);
+
+async function loadOfficerDashboard() {
+    try {
+        const res = await fetch("/officer/issues");
+        
+        const data = await res.json();
+
+        officerDepartment = data.officer.department;
+
+        document.getElementById("departmentName").innerText = officerDepartment;
+        document.getElementById("officer-name").innerText = data.officer.name;
+        const officerName = data.officer.name || "Officer";
+        document.getElementById("officer-name").innerText = officerName;
+        document.getElementById("officer-avatar").innerText =
+            officerName.charAt(0).toUpperCase();
+
+        /* ================================
+           FIX 3 — DEPARTMENT-BASED UI
+        ================================= */
+        if (officerDepartment !== "Road Maintenance") {
+            document.querySelector(".priority-section").style.display = "none";
+        }
+
+        renderComplaints(data.issues || []);
+
+        /* Load priority ONLY if applicable */
+        if (data.issues.some(i => i.severity_score !== null)) {
+            loadPriorityComplaints();
+        }
+
+        loadDepartmentGraph();
+
+    } catch (err) {
+        console.error("Dashboard load failed:", err);
+    }
+}
+
+
+/* =======================================================
+   COMPLAINT TABLE RENDERER
+======================================================= */
+function renderComplaints(issues) {
+    const tbody = document.querySelector(".complaints-table tbody");
+    tbody.innerHTML = "";
+
+    issues.forEach(issue => {
+        tbody.innerHTML += `
+            <tr>
+                <td>#CN-${issue.issue_id}</td>
+                <td>${issue.detected_issue}</td>
+                <td>${issue.location_text || "N/A"}</td>
+                <td>
+                    <select class="status-select">
+                        <option ${issue.status === "Pending" ? "selected" : ""}>Pending</option>
+                        <option ${issue.status === "In Progress" ? "selected" : ""}>In Progress</option>
+                        <option ${issue.status === "Resolved" ? "selected" : ""}>Resolved</option>
+                    </select>
+                </td>
+                <td>
+                    <button class="action-btn"
+                        onclick="openComplaintDetails(${issue.issue_id})">
+                        <i class="fas fa-eye"></i> View
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    updateDashboardCounts();
+    attachStatusListeners();
+}
+
+/* =======================================================
+   DASHBOARD COUNTS
+======================================================= */
+function updateDashboardCounts() {
+    const rows = document.querySelectorAll(".complaints-table tbody tr");
+
+    let total = rows.length;
+    let pending = 0;
+    let resolved = 0;
+
+    rows.forEach(row => {
+        const status = row.querySelector("select").value.toLowerCase();
+        if (status.includes("pending")) pending++;
+        if (status.includes("resolved")) resolved++;
+    });
+
+    document.getElementById("total-count").innerText = total;
+    document.getElementById("pending-count").innerText = pending;
+    document.getElementById("resolved-count").innerText = resolved;
+}
+
+/* =======================================================
+   STATUS UPDATE
+======================================================= */
+function attachStatusListeners() {
+    document.querySelectorAll(".status-select").forEach(select => {
+        select.addEventListener("change", async function () {
+            const row = this.closest("tr");
+            const issueId = row.cells[0].innerText.replace("#CN-", "");
+            const newStatus = this.value;
+
+            let fd = new FormData();
+            fd.append("issue_id", issueId);
+            fd.append("status", newStatus);
+
+            const res = await fetch("/officer/update-status", {
+    method: "POST",
+    body: fd
+});
+
+            const data = await res.json();
+            if (data.message) {
+                updateDashboardCounts();
+                loadPriorityComplaints();
+            }
+
+            
+        });
+    });
+}
+
+/* =======================================================
+   PRIORITY POTHOLE SECTION (POTHOLE ONLY)
+======================================================= */
+async function loadPriorityComplaints() {
+    try {
+        const res = await fetch("/officer/issues/priority")
+
+        if (!res.ok) {
+            console.warn("Priority endpoint failed:", res.status);
+            return;
+        }
+
+        const text = await res.text();
+
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch {
+            console.warn("Priority returned HTML, skipping");
+            return;
+        }
+
+        allPriorityComplaints = data.filter(i => i.status !== "Resolved");
+        renderPriorityComplaints();
+
+    } catch (err) {
+        console.error("Priority load error:", err);
+    }
+}
+
+
+function renderPriorityComplaints() {
+    const container = document.getElementById("priority-cards");
+    container.innerHTML = "";
+
+    const display = showAllPriority
+        ? allPriorityComplaints
+        : allPriorityComplaints.slice(0, 2);
+
+    if (!display.length) {
+        container.innerHTML = "<p>No priority pothole complaints.</p>";
+        return;
+    }
+
+    display.forEach(issue => {
+        const score = Number(issue.severity_score) || 0;
+
+        const level =
+            score >= 60 ? "HIGH" :
+            score >= 30 ? "MEDIUM" : "LOW";
+
+
+        container.innerHTML += `
+            <div class="priority-card">
+                <div class="priority-badge">${level}</div>
+                <div class="priority-content">
+                    <div class="priority-title">PRIORITY ISSUE</div>
+                    <div class="priority-meta">
+                        <span>#CN-${issue.issue_id}</span>
+                        <span>${issue.location_text}</span>
+                    </div>
+                    <button class="btn btn-primary btn-sm"
+                        onclick="openComplaintDetails(${issue.issue_id})">
+                        View Details
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+
+    document.getElementById("viewAllPriorityBtn").innerText =
+        showAllPriority ? "Show Less" : "View All";
+}
+
+document.getElementById("viewAllPriorityBtn")
+    ?.addEventListener("click", () => {
+        showAllPriority = !showAllPriority;
+        renderPriorityComplaints();
+    });
+
+/* =======================================================
+   DEPARTMENT-BASED CHARTS
+======================================================= */
+async function loadDepartmentGraph() {
+    const res = await fetch("/officer/issues/monthly")
+    const result = await res.json();
+
+    let monthly = {};
+    result.issues.forEach(i => {
+        let month = i.created_at.substring(0, 7);
+        monthly[month] = (monthly[month] || 0) + 1;
+    });
+
+    potholeLabels = Object.keys(monthly).sort();
+    potholeValues = potholeLabels.map(m => monthly[m]);
+
+    showPotholeBarChart();
+}
+
+function showPotholeBarChart() {
+    drawPotholeChart("bar", "Monthly Complaints");
+}
+function showPotholeLineChart() {
+    drawPotholeChart("line", "Monthly Complaints");
+}
+function showPotholePieChart() {
+    drawPotholeChart("pie", "Monthly Complaints");
+}
+
+function drawPotholeChart(type, label) {
+    const ctx = document.getElementById("potholeMonthlyChart");
+    if (potholeChart) potholeChart.destroy();
+
+    potholeChart = new Chart(ctx, {
+        type,
+        data: {
+            labels: potholeLabels,
+            datasets: [{ label, data: potholeValues, borderWidth: 2 }]
+        },
+        options: { responsive: true }
+    });
+}
+
+/* =======================================================
+   MODAL
+======================================================= */
+async function openComplaintDetails(id) {
+    try {
+        const res = await fetch(`/officer/issue/${id}`, {
+    credentials: "include",
+    headers: {
+        "X-Requested-With": "XMLHttpRequest"
+    }
+});
+
+
+        if (res.redirected) {
+            window.location.href = "/login-page";
+            return;
+        }
+
+        const text = await res.text();
+
+        let issue;
+        try {
+            issue = JSON.parse(text);
+        } catch {
+            console.error("Issue endpoint returned HTML");
+            return;
+        }
+
+        // ✅ Now safe
+        // Complaint basic info
+        document.getElementById("modal-complaint-id").innerText = "#CN-" + issue.issue_id;
+        document.getElementById("modal-description").innerText = issue.description || "N/A";
+        document.getElementById("modal-location").innerText = issue.location_text || "N/A";
+        document.getElementById("modal-submitted").innerText = issue.created_at || "N/A";
+        document.getElementById("modal-issue-ai").innerText =
+            issue.detected_issue.toUpperCase() + " (" + issue.confidence + ")";
+        document.getElementById("modal-department").innerText =
+            issue.assigned_department || "N/A";
+
+        // ✅ Citizen Info (FIX)
+        document.getElementById("modal-citizen-info").innerHTML = `
+            <strong>Name:</strong> ${issue.citizen_name || "N/A"}<br>
+            <strong>Email:</strong> ${issue.citizen_email || "N/A"}<br>
+            <strong>Phone:</strong> ${issue.citizen_phone || "N/A"}
+        `;
+
+        // Image
+        document.getElementById("modal-image").src =
+            issue.image1_path ? `/static/uploads/${issue.image1_path}` : "placeholder.jpg";
+
+        document.getElementById("complaint-modal").style.display = "flex";
+
+    } catch (err) {
+        console.error("View failed:", err);
+    }
+}
+
+/* =======================================================
+   LOGOUT & NAV SAFETY
+======================================================= */
+document.querySelectorAll("a[href]").forEach(link => {
+    link.addEventListener("click", () => isInternalNavigation = true);
+});
+
+document.getElementById("logoutBtn")
+    ?.addEventListener("click", () => {
+        isInternalNavigation = true;
+        window.location.href = "/logout";
+    });
+
+window.addEventListener("beforeunload", e => {
+    if (!isInternalNavigation) {
+        e.preventDefault();
+        e.returnValue = "";
+    }
+});
+
+
+function closeComplaintDetails() {
+    document.getElementById("complaint-modal").style.display = "none";
+}
+
+
+</script>
+</body>
+</html>
