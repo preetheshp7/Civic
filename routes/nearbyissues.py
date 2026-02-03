@@ -1,22 +1,30 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_from_directory, current_app
 from routes.db import get_db
-from flask import send_from_directory, current_app
+from psycopg2.extras import RealDictCursor
 import os
 
-
 issues_bp = Blueprint("issues", __name__)
+
+# -----------------------------
+# Serve uploaded images
+# -----------------------------
+
 @issues_bp.route("/uploads/<path:filename>")
 def serve_uploaded_image(filename):
     upload_folder = os.path.join(current_app.root_path, "static", "uploads")
     return send_from_directory(upload_folder, filename)
 
+
+# -----------------------------
+# Nearby issues (TEMP: all)
+# -----------------------------
+
 @issues_bp.route("/issues/nearby", methods=["GET"])
 def nearby_issues():
     db = get_db()
-    cur = db.cursor(dictionary=True)
+    cur = db.cursor(cursor_factory=RealDictCursor)
 
     # TEMP: return all issues
-    # (later you can filter by distance / pincode / lat-lng)
     cur.execute("""
         SELECT
             issue_id,
@@ -36,10 +44,15 @@ def nearby_issues():
 
     return jsonify(issues)
 
+
+# -----------------------------
+# Get issue by ID
+# -----------------------------
+
 @issues_bp.route("/issue/<int:issue_id>", methods=["GET"])
 def get_issue_by_id(issue_id):
     db = get_db()
-    cur = db.cursor(dictionary=True)
+    cur = db.cursor(cursor_factory=RealDictCursor)
 
     cur.execute("""
         SELECT
@@ -56,7 +69,6 @@ def get_issue_by_id(issue_id):
     """, (issue_id,))
 
     issue = cur.fetchone()
-
     cur.close()
     db.close()
 
@@ -64,4 +76,3 @@ def get_issue_by_id(issue_id):
         return jsonify({"error": "Issue not found"}), 404
 
     return jsonify(issue)
-

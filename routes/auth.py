@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, render_template, redirect, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from routes.db import get_db
-import mysql.connector
+from psycopg2.extras import RealDictCursor
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -32,25 +32,23 @@ def login():
 
     # ---------------- USER LOGIN ----------------
     db = get_db()
-    cursor = db.cursor(dictionary=True)
+    cur = db.cursor(cursor_factory=RealDictCursor)
 
-    cursor.execute(
-        "SELECT * FROM users WHERE email=%s",
+    cur.execute(
+        "SELECT * FROM users WHERE email = %s",
         (email,)
     )
-    user = cursor.fetchone()
+    user = cur.fetchone()
 
-    cursor.close()
+    cur.close()
     db.close()
 
     if not user:
         return render_template("login.html", error="Invalid credentials")
 
-    # ---------------- PASSWORD CHECK ----------------
     if not check_password_hash(user["password"], password):
         return render_template("login.html", error="Invalid credentials")
 
-    # ---------------- STATUS CHECK ----------------
     if user["status"] != "active":
         return render_template(
             "login.html",
@@ -66,7 +64,6 @@ def login():
     session["user_name"] = user["name"]
     session["email"] = user["email"]
 
-    # Optional role-based data
     if user["role"] == "citizen":
         session["pincode"] = user["pincode"]
         return redirect("/user-dashboard")
@@ -89,10 +86,9 @@ def signup():
     phone = request.form.get("phone")
     role = request.form.get("role")
     password = request.form.get("password")
-    pincode = request.form.get("pincode")          # citizen only
-    department = request.form.get("department")    # officer only
+    pincode = request.form.get("pincode")
+    department = request.form.get("department")
 
-    # ---------------- BASIC VALIDATION ----------------
     if not name or not email or not phone or not password:
         return jsonify(success=False, message="Missing required fields"), 400
 
@@ -105,50 +101,34 @@ def signup():
         return jsonify(success=False, message="Invalid role"), 400
 
     if role == "citizen" and not pincode:
-        return jsonify(
-            success=False,
-            message="Pincode required for citizens"
-        ), 400
+        return jsonify(success=False, message="Pincode required"), 400
 
     if role == "officer" and not department:
-        return jsonify(
-            success=False,
-            message="Department required for officers"
-        ), 400
+        return jsonify(success=False, message="Department required"), 400
 
-    # Officer status logic
     status = "pending" if role == "officer" else "active"
 
-    # ---------------- DB CONNECTION ----------------
-    conn = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="",
-        database="mca"
-    )
-    cursor = conn.cursor(dictionary=True)
+    db = get_db()
+    cur = db.cursor(cursor_factory=RealDictCursor)
 
     try:
-        # ---------------- DUPLICATE EMAIL CHECK ----------------
-        cursor.execute(
-            "SELECT id FROM users WHERE email=%s",
+        # Duplicate email check
+        cur.execute(
+            "SELECT id FROM users WHERE email = %s",
             (email,)
         )
-        if cursor.fetchone():
-            return jsonify(
-                success=False,
-                message="Email already exists"
-            ), 409
+        if cur.fetchone():
+            return jsonify(success=False, message="Email already exists"), 409
 
-        # ---------------- PASSWORD HASH ----------------
         hashed_password = generate_password_hash(password)
 
-        # ---------------- INSERT USER ----------------
-        cursor.execute(
+        # Insert user
+        cur.execute(
             """
             INSERT INTO users
             (name, email, phone, password, role, pincode, department, status)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
             """,
             (
                 name,
@@ -161,15 +141,15 @@ def signup():
                 status
             )
         )
-        conn.commit()
-        user_id = cursor.lastrowid
+
+        user_id = cur.fetchone()["id"]
+        db.commit()
 
     finally:
-        cursor.close()
-        conn.close()
+        cur.close()
+        db.close()
 
-    # ---------------- SESSION ----------------
-    # Only auto-login active users
+    # Auto-login only active users
     if status == "active":
         session["user_id"] = user_id
         session["email"] = email
@@ -183,7 +163,6 @@ def signup():
 
         return jsonify(success=True)
 
-    # Officer pending approval
     return jsonify(
         success=True,
         message="Signup successful. Officer account pending admin approval."

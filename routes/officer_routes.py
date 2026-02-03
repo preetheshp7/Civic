@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, session, request
 from auth_utils import officer_required
 from routes.db import get_db
+from psycopg2.extras import RealDictCursor
 
 officer_bp = Blueprint(
     "officer",
@@ -18,12 +19,14 @@ def officer_issues():
     print("DEBUG session department =", dept)
 
     db = get_db()
-    cur = db.cursor(dictionary=True)
+    cur = db.cursor(cursor_factory=RealDictCursor)
 
+    # Debug: all issues
     cur.execute("SELECT * FROM issues")
     all_issues = cur.fetchall()
     print("DEBUG total issues in DB =", len(all_issues))
 
+    # Filtered by department
     cur.execute("""
         SELECT *
         FROM issues
@@ -51,7 +54,7 @@ def officer_issues():
 @officer_required
 def officer_issue_details(issue_id):
     db = get_db()
-    cur = db.cursor(dictionary=True)
+    cur = db.cursor(cursor_factory=RealDictCursor)
 
     cur.execute("""
         SELECT
@@ -71,6 +74,7 @@ def officer_issue_details(issue_id):
 
     return jsonify(issue)
 
+
 # -----------------------------
 # UPDATE STATUS
 # -----------------------------
@@ -88,8 +92,8 @@ def update_status():
 
     cur.execute("""
         UPDATE issues
-        SET status=%s
-        WHERE issue_id=%s
+        SET status = %s
+        WHERE issue_id = %s
     """, (status, issue_id))
 
     db.commit()
@@ -100,7 +104,7 @@ def update_status():
 
 
 # -----------------------------
-# PRIORITY POTHOLES
+# PRIORITY ISSUES
 # -----------------------------
 @officer_bp.route("/issues/priority")
 @officer_required
@@ -108,12 +112,12 @@ def priority_issues():
     dept = session.get("department")
 
     db = get_db()
-    cur = db.cursor(dictionary=True)
+    cur = db.cursor(cursor_factory=RealDictCursor)
 
     cur.execute("""
         SELECT *
         FROM issues
-        WHERE assigned_department=%s
+        WHERE assigned_department = %s
         ORDER BY severity_score DESC
     """, (dept,))
 
@@ -125,7 +129,7 @@ def priority_issues():
 
 
 # -----------------------------
-# POTHOLE GRAPH DATA
+# MONTHLY ISSUES DATA
 # -----------------------------
 @officer_bp.route("/issues/monthly")
 @officer_required
@@ -133,17 +137,16 @@ def monthly_issues():
     dept = session.get("department")
 
     db = get_db()
-    cur = db.cursor(dictionary=True)
+    cur = db.cursor(cursor_factory=RealDictCursor)
 
     cur.execute("""
         SELECT issue_id, created_at
         FROM issues
-        WHERE assigned_department=%s
+        WHERE assigned_department = %s
     """, (dept,))
 
     issues = cur.fetchall()
     cur.close()
     db.close()
 
-    return jsonify({ "issues": issues })
-
+    return jsonify({"issues": issues})

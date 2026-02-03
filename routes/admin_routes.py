@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from auth_utils import admin_required
 from routes.db import get_db
+from psycopg2.extras import RealDictCursor
 
 admin_bp = Blueprint(
     "admin",
@@ -16,7 +17,7 @@ admin_bp = Blueprint(
 @admin_required
 def get_pending_officers():
     db = get_db()
-    cur = db.cursor(dictionary=True)
+    cur = db.cursor(cursor_factory=RealDictCursor)
 
     cur.execute("""
         SELECT id, name, email, department
@@ -77,7 +78,7 @@ def reject_officer():
 @admin_required
 def get_blocked_officers():
     db = get_db()
-    cur = db.cursor(dictionary=True)
+    cur = db.cursor(cursor_factory=RealDictCursor)
 
     cur.execute("""
         SELECT id, name, email, department
@@ -117,7 +118,7 @@ def reactivate_officer():
 @admin_required
 def get_all_issues():
     db = get_db()
-    cur = db.cursor(dictionary=True)
+    cur = db.cursor(cursor_factory=RealDictCursor)
 
     cur.execute("""
         SELECT
@@ -143,7 +144,7 @@ def get_all_issues():
 @admin_required
 def get_issues_by_type(issue_type):
     db = get_db()
-    cur = db.cursor(dictionary=True)
+    cur = db.cursor(cursor_factory=RealDictCursor)
 
     if issue_type == "all":
         cur.execute("""
@@ -180,7 +181,7 @@ def get_issues_by_type(issue_type):
 @admin_required
 def admin_issue_details(issue_id):
     db = get_db()
-    cur = db.cursor(dictionary=True)
+    cur = db.cursor(cursor_factory=RealDictCursor)
 
     cur.execute("""
         SELECT
@@ -212,11 +213,12 @@ def admin_issue_details(issue_id):
 
     return jsonify(issue)
 
+
 @admin_bp.route("/officers/all")
 @admin_required
 def get_all_officers():
     db = get_db()
-    cur = db.cursor(dictionary=True)
+    cur = db.cursor(cursor_factory=RealDictCursor)
 
     cur.execute("""
         SELECT id, name, email, department, status
@@ -257,7 +259,7 @@ def block_officer():
 @admin_required
 def get_all_users():
     db = get_db()
-    cur = db.cursor(dictionary=True)
+    cur = db.cursor(cursor_factory=RealDictCursor)
 
     cur.execute("""
         SELECT id, name, email, phone, pincode, status
@@ -322,7 +324,7 @@ def search_officers():
     status = request.args.get("status", "all")
 
     db = get_db()
-    cur = db.cursor(dictionary=True)
+    cur = db.cursor(cursor_factory=RealDictCursor)
 
     sql = """
         SELECT id, name, email, department, status
@@ -336,7 +338,7 @@ def search_officers():
         params.append(status)
 
     if q:
-        sql += " AND (name LIKE %s OR email LIKE %s)"
+        sql += " AND (name ILIKE %s OR email ILIKE %s)"
         params.extend([f"%{q}%", f"%{q}%"])
 
     sql += " ORDER BY id DESC"
@@ -357,7 +359,7 @@ def search_users():
     status = request.args.get("status", "all")
 
     db = get_db()
-    cur = db.cursor(dictionary=True)
+    cur = db.cursor(cursor_factory=RealDictCursor)
 
     sql = """
         SELECT id, name, email, phone, pincode, status
@@ -371,7 +373,7 @@ def search_users():
         params.append(status)
 
     if q:
-        sql += " AND (name LIKE %s OR email LIKE %s)"
+        sql += " AND (name ILIKE %s OR email ILIKE %s)"
         params.extend([f"%{q}%", f"%{q}%"])
 
     sql += " ORDER BY id DESC"
@@ -394,8 +396,8 @@ def count_garbage_issues():
     cur = db.cursor()
 
     cur.execute("""
-        SELECT COUNT(*) 
-        FROM issues 
+        SELECT COUNT(*)
+        FROM issues
         WHERE detected_issue = 'garbage'
     """)
 
@@ -413,8 +415,8 @@ def count_pothole_issues():
     cur = db.cursor()
 
     cur.execute("""
-        SELECT COUNT(*) 
-        FROM issues 
+        SELECT COUNT(*)
+        FROM issues
         WHERE detected_issue = 'pothole'
     """)
 
@@ -425,22 +427,25 @@ def count_pothole_issues():
 
     return jsonify({"count": count})
 
+
 @admin_bp.route("/count/general")
 def count_general():
     db = get_db()
     cur = db.cursor()
 
     cur.execute("""
-        SELECT COUNT(*) 
-        FROM issues 
+        SELECT COUNT(*)
+        FROM issues
         WHERE detected_issue = 'general'
     """)
+
     count = cur.fetchone()[0]
 
     cur.close()
     db.close()
 
     return jsonify({"count": count})
+
 
 from flask import session, redirect, url_for
 

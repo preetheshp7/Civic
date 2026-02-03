@@ -1,46 +1,43 @@
 import os
 import uuid
-import math
-import numpy as np
-import tensorflow as tf
-import piexif
-
 from datetime import datetime, timedelta
 from PIL import Image
+import piexif
+
 from flask import Blueprint, request, jsonify, session
+from psycopg2.extras import RealDictCursor
 
 from auth_utils import citizen_required
 from routes.db import get_db
 from services.department_mapper import get_department
-from utils.geo_utils import dms_to_decimal,get_distance_m
-from utils.image_utils import save_image,allowed_file
+from utils.geo_utils import dms_to_decimal, get_distance_m
+from utils.image_utils import save_image, allowed_file
 
 user_bp = Blueprint("user", __name__)
 
 UPLOAD_FOLDER = os.path.join("static", "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png"}
-
 # -----------------------------
-# USER DATA
+# USER COUNTS (FIXED FOR POSTGRES)
 # -----------------------------
 
 @user_bp.route("/user/counts")
 @citizen_required
 def user_counts():
     citizen_email = session.get("email")
+
     db = get_db()
-    cur = db.cursor(dictionary=True)
+    cur = db.cursor(cursor_factory=RealDictCursor)
 
     cur.execute("""
         SELECT
             COUNT(*) AS total,
-            SUM(status='Pending') AS pending,
-            SUM(status='In Progress') AS progress,
-            SUM(status='Resolved') AS resolved
+            COUNT(*) FILTER (WHERE status='Pending')     AS pending,
+            COUNT(*) FILTER (WHERE status='In Progress') AS progress,
+            COUNT(*) FILTER (WHERE status='Resolved')    AS resolved
         FROM issues
-        WHERE citizen_email=%s
+        WHERE citizen_email = %s
     """, (citizen_email,))
 
     data = cur.fetchone()
@@ -50,17 +47,22 @@ def user_counts():
     return jsonify(data)
 
 
+# -----------------------------
+# USER ISSUES
+# -----------------------------
+
 @user_bp.route("/user/issues")
 @citizen_required
 def user_issues():
     citizen_email = session.get("email")
+
     db = get_db()
-    cur = db.cursor(dictionary=True)
+    cur = db.cursor(cursor_factory=RealDictCursor)
 
     cur.execute("""
         SELECT *
         FROM issues
-        WHERE citizen_email=%s
+        WHERE citizen_email = %s
         ORDER BY created_at DESC
     """, (citizen_email,))
 
@@ -71,6 +73,10 @@ def user_issues():
     return jsonify(issues)
 
 
+# -----------------------------
+# SINGLE ISSUE
+# -----------------------------
+
 @user_bp.route("/user/issue/<int:issue_id>", methods=["GET"])
 def get_single_issue(issue_id):
     citizen_email = session.get("email")
@@ -78,7 +84,7 @@ def get_single_issue(issue_id):
         return jsonify({"error": "Unauthorized"}), 401
 
     db = get_db()
-    cur = db.cursor(dictionary=True)
+    cur = db.cursor(cursor_factory=RealDictCursor)
 
     cur.execute("""
         SELECT
@@ -90,7 +96,7 @@ def get_single_issue(issue_id):
             image1_path,
             image2_path
         FROM issues
-        WHERE issue_id=%s AND citizen_email=%s
+        WHERE issue_id = %s AND citizen_email = %s
     """, (issue_id, citizen_email))
 
     issue = cur.fetchone()
@@ -104,11 +110,15 @@ def get_single_issue(issue_id):
         "issue_id": issue["issue_id"],
         "detected_issue": issue["detected_issue"],
         "status": issue["status"],
-        "location": issue["location_text"],   # ✅ rename
+        "location": issue["location_text"],
         "created_at": issue["created_at"],
-        "image": issue["image1_path"]          # ✅ rename
+        "image": issue["image1_path"]
     })
 
+
+# -----------------------------
+# DELETE ISSUE
+# -----------------------------
 
 @user_bp.route("/user/issue/<int:issue_id>", methods=["DELETE"])
 def delete_issue(issue_id):
@@ -122,11 +132,10 @@ def delete_issue(issue_id):
     cur.execute("""
         SELECT status
         FROM issues
-        WHERE issue_id=%s AND citizen_email=%s
+        WHERE issue_id = %s AND citizen_email = %s
     """, (issue_id, citizen_email))
 
     row = cur.fetchone()
-
     if not row:
         cur.close()
         db.close()
@@ -141,7 +150,7 @@ def delete_issue(issue_id):
 
     cur.execute("""
         DELETE FROM issues
-        WHERE issue_id=%s AND citizen_email=%s
+        WHERE issue_id = %s AND citizen_email = %s
     """, (issue_id, citizen_email))
 
     db.commit()
@@ -152,32 +161,7 @@ def delete_issue(issue_id):
 
 
 # -----------------------------
-# ML MODEL
-# -----------------------------
-
-# -----------------------------
-# dummy
-# -----------------------------
-# @user_bp.route("/predict", methods=["POST"])
-# def predict():
-#     return jsonify({
-#         "prediction": "garbage",
-#         "confidence": 0.75,
-#         "severity_score": 6.5
-#     })
-
-
-
-
-# -----------------------------
-# HELPER FUNCTIONS (EXIF)
-# -----------------------------
-
-
-
-
-# -----------------------------
-# REPORT ISSUE (FIXED)
+# REPORT ISSUE (FIXED FOR POSTGRES)
 # -----------------------------
 
 @user_bp.route("/report-issue", methods=["POST"])
@@ -196,19 +180,18 @@ def report_issue():
     if not lat_raw or not lng_raw:
         return jsonify({"error": "Location missing"}), 400
 
-    lat = float(lat_raw)
-    lng = float(lng_raw)
+    lat = str(lat_raw)
+    lng = str(lng_raw)
 
     photo1 = request.files.get("photo_1")
     photo2 = request.files.get("photo_2")
 
     if photo1 and not allowed_file(photo1.filename):
         return jsonify({"error": "Invalid image type"}), 400
-
     if photo2 and not allowed_file(photo2.filename):
         return jsonify({"error": "Invalid image type"}), 400
 
-    exif_verified = 0
+    exif_verified = False
     exif_reason = "EXIF missing or invalid"
 
     if photo1:
@@ -220,23 +203,18 @@ def report_issue():
             img_lat = dms_to_decimal(gps[2], gps[1].decode())
             img_lng = dms_to_decimal(gps[4], gps[3].decode())
 
-            distance = get_distance_m(img_lat, img_lng, lat, lng)
+            distance = get_distance_m(img_lat, img_lng, float(lat), float(lng))
 
-            img_time_raw = exif_dict["Exif"].get(
-                piexif.ExifIFD.DateTimeOriginal
-            )
+            img_time_raw = exif_dict["Exif"].get(piexif.ExifIFD.DateTimeOriginal)
             if img_time_raw:
                 img_time = datetime.strptime(
                     img_time_raw.decode(),
                     "%Y:%m:%d %H:%M:%S"
                 )
-                if (
-                    distance <= 200
-                    and datetime.now() - img_time <= timedelta(days=7)
-                ):
-                    exif_verified = 1
+                if distance <= 200 and datetime.now() - img_time <= timedelta(days=7):
+                    exif_verified = True
                     exif_reason = "Verified"
-        except:
+        except Exception:
             pass
 
         photo1.seek(0)
@@ -244,12 +222,13 @@ def report_issue():
     img1_path = save_image(photo1) if photo1 else None
     img2_path = save_image(photo2) if photo2 else None
 
+    dept = get_department(predicted_issue)
+
     db = get_db()
     cur = db.cursor()
-    dept = get_department(predicted_issue)
+
     cur.execute("""
-        INSERT INTO issues
-        (
+        INSERT INTO issues (
             detected_issue,
             confidence,
             severity_score,
@@ -267,6 +246,7 @@ def report_issue():
             status
         )
         VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        RETURNING issue_id
     """, (
         predicted_issue,
         confidence,
@@ -282,23 +262,20 @@ def report_issue():
         dept,
         exif_verified,
         exif_reason,
-        "Pending"        # ✅ NOW MATCHES
+        "Pending"
     ))
 
-
+    issue_id = cur.fetchone()[0]
     db.commit()
-    issue_id = cur.lastrowid
     cur.close()
     db.close()
-
-    assigned_to = {
-        "department": dept,
-        "officer": "Municipal Officer",
-        "priority": "High" if float(severity_score) > 0.7 else "Normal"
-    }
 
     return jsonify({
         "complaint_id": f"#CN-{issue_id}",
         "detected_issue": predicted_issue,
-        "assigned_to": assigned_to
+        "assigned_to": {
+            "department": dept,
+            "officer": "Municipal Officer",
+            "priority": "High" if float(severity_score) > 0.7 else "Normal"
+        }
     })
