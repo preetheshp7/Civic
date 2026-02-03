@@ -1,0 +1,12 @@
+Flask==3.1.0
+gunicorn
+flask-cors
+Flask-Login
+Flask-Bcrypt
+Flask-Limiter
+Flask-MySQLdb
+Flask-PyMongo
+mysqlclient
+pymongo
+python-dotenv
+requests

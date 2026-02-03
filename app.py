@@ -1,5 +1,5 @@
 from datetime import timedelta
-
+import os
 from flask import Flask, render_template, redirect, session
 from flask_cors import CORS
 from auth_utils import admin_required
@@ -13,8 +13,10 @@ CORS(app, supports_credentials=True)
 # -----------------------------
 # CONFIG
 # -----------------------------
-app.secret_key = "civicconnect_secret_2025_DO_NOT_CHANGE"
-app.config["GOOGLE_MAPS_KEY"] = "AIzaSyBRnVFGIftMgZYJMph25qJmExTkWxQMmsg"
+
+app.secret_key = os.getenv("SECRET_KEY")
+app.config["GOOGLE_MAPS_KEY"] = os.getenv("GOOGLE_MAPS_KEY")
+
 app.config.update(
     SESSION_PERMANENT=True,
     PERMANENT_SESSION_LIFETIME=timedelta(hours=6),
@@ -90,4 +92,4 @@ app.register_blueprint(issues_bp)
 # RUN SERVER
 # -----------------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run()
